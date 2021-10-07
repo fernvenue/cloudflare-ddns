@@ -2,6 +2,8 @@
 
 [![ddns](https://img.shields.io/badge/LICENSE-BSD3%20Clause%20Liscense-brightgreen?style=flat-square)](./LICENSE)
 
+[README](./README.md) | [中文說明](./README_zh.md)
+
 Automatically update the resolution of domain by Cloudflare api, support A and AAAA records.
 
 ## Steps for Usage
