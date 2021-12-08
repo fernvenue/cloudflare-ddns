@@ -10,10 +10,10 @@ Automatically update the resolution of domain by Cloudflare api, support A and A
 
 ### Edit and run the script
 
-What you need to pay attention to at this step is the connectivity between your network and `raw.githubusercontent.com`. If your network has this problem, you can try to manually copy to the directory below and continue, or try to use some CDN services.
+Just get the shell script and edit.
 
 ```
-curl -o /usr/local/bin/ddns.sh https://raw.githubusercontent.com/fernvenue/cloudflare-ddns/master/ddns.sh
+curl -o /usr/local/bin/ddns.sh https://cdn.jsdelivr.net/gh/fernvenue/cloudflare-ddns/ddns.sh
 vim /usr/local/bin/ddns.sh
 ```
 
@@ -37,11 +37,11 @@ If you get `no file, need ip.` error just check your account information again.
 
 ### Use systemd timer to automate
 
-You can run the following code directly, or write it yourself by referring to this project, or just use crontab to automate it. What you still need to pay attention to is the connectivity between your network and `raw.githubusercontent.com`. If your network has this problem, you can try to manually copy to the directory below and continue, or try to use some CDN services.
+You can run the following code directly, or write it yourself by referring to this project, or just use crontab to automate it.
 
 ```
-curl -o /lib/systemd/system/ddns.service https://raw.githubusercontent.com/fernvenue/cloudflare-ddns/master/ddns.service
-curl -o /lib/systemd/system/ddns.timer https://raw.githubusercontent.com/fernvenue/cloudflare-ddns/master/ddns.timer
+curl -o /lib/systemd/system/ddns.service https://cdn.jsdelivr.net/gh/fernvenue/cloudflare-ddns/ddns.service
+curl -o /lib/systemd/system/ddns.timer https://cdn.jsdelivr.net/gh/fernvenue/cloudflare-ddns/ddns.timer
 systemctl enable ddns.timer
 systemctl start ddns.timer
 systemctl status ddns
