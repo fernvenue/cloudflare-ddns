@@ -10,10 +10,10 @@
 
 ### 編輯並執行脚本
 
-首先需要注意你與 `raw.githubusercontent.com` 間的網路連接性. 若存在這一問題, 可以嘗試直接拷貝脚本内容並繼續或使用相關 CDN 服務.
+透過 curl 獲取並編輯脚本.
 
 ```
-curl -o /usr/local/bin/ddns.sh https://raw.githubusercontent.com/fernvenue/cloudflare-ddns/master/ddns.sh
+curl -o /usr/local/bin/ddns.sh https://cdn.jsdelivr.net/gh/fernvenue/cloudflare-ddns/ddns.sh
 vim /usr/local/bin/ddns.sh
 ```
 
@@ -38,11 +38,11 @@ chmod +x /usr/local/bin/ddns.sh
 
 ### 透過 systemd timer 自動化執行
 
-你可以直接執行下列代碼, 或參照本項目手動編寫 systemd 相關配置, 亦或使用 crontab 自動化執行. 你仍然需要關注你與 `raw.githubusercontent.com` 之間的網路連接性, 若存在這一問題, 可以嘗試直接本項目内容並繼續或使用相關 CDN 服務.
+你可以直接執行下列代碼, 或參照本項目手動編寫 systemd 相關配置, 亦或使用 crontab 自動化執行.
 
 ```
-curl -o /lib/systemd/system/ddns.service https://raw.githubusercontent.com/fernvenue/cloudflare-ddns/master/ddns.service
-curl -o /lib/systemd/system/ddns.timer https://raw.githubusercontent.com/fernvenue/cloudflare-ddns/master/ddns.timer
+curl -o /lib/systemd/system/ddns.service https://cdn.jsdelivr.net/gh/fernvenue/cloudflare-ddns/ddns.service
+curl -o /lib/systemd/system/ddns.timer https://cdn.jsdelivr.net/gh/fernvenue/cloudflare-ddns/ddns.timer
 systemctl enable ddns.timer
 systemctl start ddns.timer
 systemctl status ddns
