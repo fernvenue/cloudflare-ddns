@@ -15,7 +15,7 @@
 透過 curl 獲取並編輯脚本.
 
 ```
-curl -o /usr/local/bin/ddns.sh https://cdn.jsdelivr.net/gh/fernvenue/cloudflare-ddns/ddns.sh
+curl -o /usr/local/bin/ddns.sh https://gitlab.com/fernvenue/cloudflare-ddns/-/raw/master/ddns.sh
 vim /usr/local/bin/ddns.sh
 ```
 
@@ -43,8 +43,8 @@ chmod +x /usr/local/bin/ddns.sh
 你可以直接執行下列代碼, 或參照本項目手動編寫 systemd 相關配置, 亦或使用 crontab 自動化執行.
 
 ```
-curl -o /lib/systemd/system/ddns.service https://cdn.jsdelivr.net/gh/fernvenue/cloudflare-ddns/ddns.service
-curl -o /lib/systemd/system/ddns.timer https://cdn.jsdelivr.net/gh/fernvenue/cloudflare-ddns/ddns.timer
+curl -o /lib/systemd/system/ddns.service https://gitlab.com/fernvenue/cloudflare-ddns/-/raw/master/ddns.service
+curl -o /lib/systemd/system/ddns.timer https://gitlab.com/fernvenue/cloudflare-ddns/-/raw/master/ddns.timer
 systemctl enable ddns.timer
 systemctl start ddns.timer
 systemctl status ddns
