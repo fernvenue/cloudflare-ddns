@@ -59,8 +59,8 @@ chmod +x /usr/local/bin/ddns.sh
 Use systemd timer to automate.
 
 ```
-curl -o /lib/systemd/system/ddns.service https://gitlab.com/fernvenue/cloudflare-ddns/-/raw/master/ddns.service
-curl -o /lib/systemd/system/ddns.timer https://gitlab.com/fernvenue/cloudflare-ddns/-/raw/master/ddns.timer
+curl -o /etc/systemd/system/ddns.service https://gitlab.com/fernvenue/cloudflare-ddns/-/raw/master/ddns.service
+curl -o /etc/systemd/system/ddns.timer https://gitlab.com/fernvenue/cloudflare-ddns/-/raw/master/ddns.timer
 systemctl enable ddns.timer
 systemctl start ddns.timer
 systemctl status ddns
