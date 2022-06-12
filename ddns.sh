@@ -3,100 +3,122 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-CFKEY=
-CFUSER=
-CFZONE_NAME=
-CFRECORD_NAME=
-CFRECORD_TYPE=
-CFTTL=120
-FORCE=false
-WANIPSITE="http://ipv4.icanhazip.com"
+CLOUDFLARE_API_KEY=
+CLOUDFLARE_RECORD_NAME=
+CLOUDFLARE_RECORD_TYPE=
+CLOUDFLARE_USER_MAIL=
+CLOUDFLARE_ZONE_NAME=
+FORCE_UPDATE=false
+TELEGRAM_BOT_ID=
+TELEGRAM_CHAT_ID=
 
-if [ "$CFRECORD_TYPE" = "A" ]; then
-  :
-elif [ "$CFRECORD_TYPE" = "AAAA" ]; then
-  WANIPSITE="http://ipv6.icanhazip.com"
-else
-  echo "$CFRECORD_TYPE specified is invalid, CFRECORD_TYPE can only be A(for IPv4)|AAAA(for IPv6)"
-  exit 2
-fi
-
-while getopts k:u:h:z:t:f: opts; do
-  case ${opts} in
-    k) CFKEY=${OPTARG} ;;
-    u) CFUSER=${OPTARG} ;;
-    h) CFRECORD_NAME=${OPTARG} ;;
-    z) CFZONE_NAME=${OPTARG} ;;
-    t) CFRECORD_TYPE=${OPTARG} ;;
-    f) FORCE=${OPTARG} ;;
-  esac
+while getopts k:n:t:u:z:b:c:f opts; do
+	case ${opts} in
+		k) CLOUDFLARE_API_KEY=${OPTARG} ;;
+		n) CLOUDFLARE_RECORD_NAME=${OPTARG} ;;
+		t) CLOUDFLARE_RECORD_TYPE=${OPTARG} ;;
+		u) CLOUDFLARE_USER_MAIL=${OPTARG} ;;
+		z) CLOUDFLARE_ZONE_NAME=${OPTARG} ;;
+		b) TELEGRAM_BOT_ID=${OPTARG} ;;
+		c) TELEGRAM_CHAT_ID=${OPTARG} ;;
+		f) FORCE_UPDATE=true ;;
+	esac
 done
 
-if [ "$CFKEY" = "" ]; then
-  echo "Missing api-key, get at: https://www.cloudflare.com/a/account/my-account"
-  echo "and save in ${0} or using the -k flag"
-  exit 2
-fi
-if [ "$CFUSER" = "" ]; then
-  echo "Missing username, probably your email-address"
-  echo "and save in ${0} or using the -u flag"
-  exit 2
-fi
-if [ "$CFRECORD_NAME" = "" ]; then 
-  echo "Missing hostname, what host do you want to update?"
-  echo "save in ${0} or using the -h flag"
-  exit 2
+if [ "$CLOUDFLARE_API_KEY" = "" ]; then
+	printf "Error: CLOUDFLARE_API_KEY is required.\n"
+	exit 2
 fi
 
-if [ "$CFRECORD_NAME" != "$CFZONE_NAME" ] && ! [ -z "${CFRECORD_NAME##*$CFZONE_NAME}" ]; then
-  CFRECORD_NAME="$CFRECORD_NAME.$CFZONE_NAME"
-  echo " => Hostname is not a FQDN, assuming $CFRECORD_NAME"
+if [ "$CLOUDFLARE_RECORD_NAME" = "" ]; then
+	printf "Error: CLOUDFLARE_RECORD_NAME is required.\n"
+	exit 2
 fi
 
-WAN_IP=`curl -s ${WANIPSITE}`
-WAN_IP_FILE=$HOME/.cf-wan_ip_$CFRECORD_NAME.txt
-if [ -f $WAN_IP_FILE ]; then
-  OLD_WAN_IP=`cat $WAN_IP_FILE`
+if [ "$CLOUDFLARE_RECORD_TYPE" = "A" ]; then
+	IP_API="https://ipv4.icanhazip.com"
+elif [ "$CLOUDFLARE_RECORD_TYPE" = "AAAA" ]; then
+	IP_API="https://ipv6.icanhazip.com"
 else
-  echo "No file, need IP"
-  OLD_WAN_IP=""
+	LOG_TIME=`date --rfc-3339 sec`
+	printf "$LOG_TIME: Invalid record type, CLOUDFLARE_RECORD_TYPE can only be A or AAAA.\n"
+	exit 2
 fi
 
-if [ "$WAN_IP" = "$OLD_WAN_IP" ] && [ "$FORCE" = false ]; then
-  echo "WAN IP Unchanged, to update anyway use flag -f true"
-  exit 0
+if [ "$CLOUDFLARE_USER_MAIL" = "" ]; then
+	LOG_TIME=`date --rfc-3339 sec`
+	printf "$LOG_TIME: CLOUDFLARE_USER_MAIL is required.\n"
+	exit 2
 fi
 
-ID_FILE=$HOME/.cf-id_$CFRECORD_NAME.txt
-if [ -f $ID_FILE ] && [ $(wc -l $ID_FILE | cut -d " " -f 1) == 4 ] \
-  && [ "$(sed -n '3,1p' "$ID_FILE")" == "$CFZONE_NAME" ] \
-  && [ "$(sed -n '4,1p' "$ID_FILE")" == "$CFRECORD_NAME" ]; then
-    CFZONE_ID=$(sed -n '1,1p' "$ID_FILE")
-    CFRECORD_ID=$(sed -n '2,1p' "$ID_FILE")
+if [ "$CLOUDFLARE_ZONE_NAME" = "" ]; then
+	LOG_TIME=`date --rfc-3339 sec`
+	printf "$LOG_TIME: CLOUDFLARE_ZONE_NAME is required.\n"
+	exit 2
+fi
+
+PUBLIC_IP=`curl -s $IP_API`
+PUBLIC_IP_FILE=$HOME/.IP::$CLOUDFLARE_RECORD_NAME.ddns
+
+if [ -f $PUBLIC_IP_FILE ]; then
+	OLD_PUBLIC_IP=`cat $PUBLIC_IP_FILE`
 else
-    echo "Updating zone_identifier & record_identifier"
-    CFZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$CFZONE_NAME" -H "X-Auth-Email: $CFUSER" -H "X-Auth-Key: $CFKEY" -H "Content-Type: application/json" | grep -Po '(?<="id":")[^"]*' | head -1 )
-    CFRECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$CFZONE_ID/dns_records?name=$CFRECORD_NAME" -H "X-Auth-Email: $CFUSER" -H "X-Auth-Key: $CFKEY" -H "Content-Type: application/json"  | grep -Po '(?<="id":")[^"]*' | head -1 )
-    echo "$CFZONE_ID" > $ID_FILE
-    echo "$CFRECORD_ID" >> $ID_FILE
-    echo "$CFZONE_NAME" >> $ID_FILE
-    echo "$CFRECORD_NAME" >> $ID_FILE
+	OLD_PUBLIC_IP=""
 fi
 
-echo "Updating DNS to $WAN_IP"
+if [ "$PUBLIC_IP" = "$OLD_PUBLIC_IP" ] && [ "$FORCE_UPDATE" = false ]; then
+	LOG_TIME=`date --rfc-3339 sec`
+	printf "$LOG_TIME: Public IP not changed, you can use -f to update anyway.\n"
+	exit 0
+fi
 
-RESPONSE=$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$CFZONE_ID/dns_records/$CFRECORD_ID" \
-  -H "X-Auth-Email: $CFUSER" \
-  -H "X-Auth-Key: $CFKEY" \
-  -H "Content-Type: application/json" \
-  --data "{\"id\":\"$CFZONE_ID\",\"type\":\"$CFRECORD_TYPE\",\"name\":\"$CFRECORD_NAME\",\"content\":\"$WAN_IP\", \"ttl\":$CFTTL}")
+CLOUDFLARE_ID_FILE=$HOME/.ID::$CLOUDFLARE_RECORD_NAME.ddns
 
-if [ "$RESPONSE" != "${RESPONSE%success*}" ] && [ "$(echo $RESPONSE | grep "\"success\":true")" != "" ]; then
-  echo "Updated succesfuly!"
-  echo $WAN_IP > $WAN_IP_FILE
-  exit
+if [ -f $CLOUDFLARE_ID_FILE ] && [ $(wc -l $CLOUDFLARE_ID_FILE | cut -d " " -f 1) == 4 ] \
+	&& [ "$(sed -n '3,1p' "$CLOUDFLARE_ID_FILE")" == "$CLOUDFLARE_ZONE_NAME" ] \
+	&& [ "$(sed -n '4,1p' "$CLOUDFLARE_ID_FILE")" == "$CLOUDFLARE_RECORD_NAME" ]; then
+		CLOUDFLARE_ZONE_ID=$(sed -n '1,1p' "$CLOUDFLARE_ID_FILE")
+		CLOUDFLARE_RECORD_ID=$(sed -n '2,1p' "$CLOUDFLARE_ID_FILE")
 else
-  echo 'Something went wrong :('
-  echo "Response: $RESPONSE"
-  exit 1
+	CLOUDFLARE_ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$CLOUDFLARE_ZONE_NAME" -H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" -H "X-Auth-Key: $CLOUDFLARE_API_KEY" -H "Content-Type: application/json" | grep -Po '(?<="id":")[^"]*' | head -1 )
+    CLOUDFLARE_RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records?name=$CLOUDFLARE_RECORD_NAME" -H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" -H "X-Auth-Key: $CLOUDFLARE_API_KEY" -H "Content-Type: application/json"  | grep -Po '(?<="id":")[^"]*' | head -1 )
+	printf "$CLOUDFLARE_ZONE_ID\n" > $CLOUDFLARE_ID_FILE
+	printf "$CLOUDFLARE_RECORD_ID\n" >> $CLOUDFLARE_ID_FILE
+	printf "$CLOUDFLARE_ZONE_NAME\n" >> $CLOUDFLARE_ID_FILE
+	printf "$CLOUDFLARE_RECORD_NAME" >> $CLOUDFLARE_ID_FILE
+fi
+
+LOG_TIME=`date --rfc-3339 sec`
+printf "$LOG_TIME: Updating $CLOUDFLARE_RECORD_NAME to $PUBLIC_IP...\n"
+
+CLOUDFLARE_API_RESPONSE=$(curl -o /dev/null -s -w "%{http_code}\n" -X PUT "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records/$CLOUDFLARE_RECORD_ID" \
+	-H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" \
+	-H "X-Auth-Key: $CLOUDFLARE_API_KEY" \
+	-H "Content-Type: application/json" \
+	--data "{\"id\":\"$CLOUDFLARE_ZONE_ID\",\"type\":\"$CLOUDFLARE_RECORD_TYPE\",\"name\":\"$CLOUDFLARE_RECORD_NAME\",\"content\":\"$PUBLIC_IP\", \"ttl\":120}")
+
+if [ "$CLOUDFLARE_API_RESPONSE" != 200 ]; then
+	LOG_TIME=`date --rfc-3339 sec`
+	printf "$LOG_TIME: Failed to update record.\n"
+	exit 1
+else
+	LOG_TIME=`date --rfc-3339 sec`
+	printf "$LOG_TIME: $CLOUDFLARE_RECORD_NAME successfully updated to $PUBLIC_IP.\n"
+	printf $PUBLIC_IP > $PUBLIC_IP_FILE
+	if [ "$TELEGRAM_BOT_ID" != "" ]; then
+		LOG_TIME=`date --rfc-3339 sec`
+		printf "$LOG_TIME: Reporting to Telegram...\n"
+		TELEGRAM_API_RESPONSE=`curl -o /dev/null -s -w "%{http_code}\n" "https://api.telegram.org/bot$TELEGRAM_BOT_ID/sendMessage?chat_id=$TELEGRAM_CHAT_ID&parse_mode=HTML&text=<b>DDNS%20Notification:</b>%0A$CLOUDFLARE_RECORD_NAME%20successfully%20updated%20to%20$PUBLIC_IP"`
+		if [ "$TELEGRAM_API_RESPONSE" != 200 ]; then
+			LOG_TIME=`date --rfc-3339 sec`
+			printf "$LOG_TIME: Report failed.\n"
+			exit 2
+		else
+			LOG_TIME=`date --rfc-3339 sec`
+			printf "$LOG_TIME: Reported successfully.\n"
+			exit 0
+		fi
+	else
+		exit 0
+	fi
 fi

@@ -4,42 +4,59 @@
 [![cloudflare-ddns](https://img.shields.io/badge/GitHub-Cloudflare%20DDNS-blueviolet?style=flat-square&logo=github)](https://github.com/fernvenue/cloudflare-ddns)
 [![cloudflare-ddns](https://img.shields.io/badge/GitLab-Cloudflare%20DDNS-orange?style=flat-square&logo=gitlab)](https://gitlab.com/fernvenue/cloudflare-ddns)
 
-[README](./README.md) | [中文說明](./README_zh.md)
+A lightweight Cloudflare Dynamic DNS shell script.
 
-Automatically update the resolution of domain by Cloudflare api, support A and AAAA records.
+## Features
 
-## Steps for Usage
+- [x] Support A and AAAA types.
+- [x] Work with systemd timer.
+- [x] Specific outbound interface.
+- [x] Telegram notification.
+- [x] Socks proxy for Cloudflare and Telegram APIs.
 
-### Edit and run the script
+## Usage
 
-Just get the shell script and edit.
+Get and fill in the information in the script:
 
 ```
 curl -o /usr/local/bin/ddns.sh https://gitlab.com/fernvenue/cloudflare-ddns/-/raw/master/ddns.sh
 vim /usr/local/bin/ddns.sh
 ```
 
-Fill in the following account information:
+- `CLOUDFLARE_API_KEY`: Global API Key of your Cloudflare account.
+- `CLOUDFLARE_RECORD_NAME`: Record name, such as `ddns.example.com`.
+- `CLOUDFLARE_RECORD_TYPE`: Record type, can be A or AAAA.
+- `CLOUDFLARE_USER_MAIL`: The email address of your Cloudflare account.
+- `CLOUDFLARE_ZONE_NAME`: Zone name, such as `example.com`.
+- `OUTBOUND_INTERFACE`: Optional, used to specify the outbound interface.
+- `SOCKS_ADDR`: Optional, your socks server address, work for Cloudflare and Telegram APIs.
+- `SOCKS_PORT`: Optional, your socks server port.
+- `TELEGRAM_BOT_ID`: Optional, your telegram bot ID.
+- `TELEGRAM_CHAT_ID`: Optional, your telegram account or channel ID.
+- `FORCE_UPDATE`: Used to update anyway even if the IP unchanged, default is `false`.
 
-- `CFKEY`: The Global API key of your Cloudflare account.
-- `CFUSER`: The email address you use on Cloudflare.
-- `CFZONE_NAME`: Zone name of your domain, such as `example.com`.
-- `CFRECORD_NAME`: Domain name of your target, such as `ddns.example.com`.
-- `CFRECORD_TYPE`: The type of your record, can be A or AAAA.
+You can also define parameters by flags:
 
-**And you must have resolved the target domain name to an address**, can be any address and we will use this script to correct it.
+- `-k` = `$CLOUDFLARE_API_KEY`
+- `-n` = `$CLOUDFLARE_RECORD_NAME`
+- `-t` = `$CLOUDFLARE_RECORD_TYPE`
+- `-u` = `$CLOUDFLARE_USER_MAIL`
+- `-z` = `$CLOUDFLARE_ZONE_NAME`
+- `-i` = `$OUTBOUND_INTERFACE`
+- `-a` = `$SOCKS_ADDR`
+- `-p` = `$SOCKS_PORT`
+- `-b` = `$TELEGRAM_BOT_ID`
+- `-c` = `$TELEGRAM_CHAT_ID`
+- `-f` = `$FORCE_UPDATE`
 
-After confirming that the above information is correct, we can run the following code to test it
+Give permission and run. **You must have resolved the target domain name to an address.**
+
 ```
 chmod +x /usr/local/bin/ddns.sh
 /bin/bash /usr/local/bin/ddns.sh
 ```
 
-If you get `no file, need ip.` error just check your account information again.
-
-### Use systemd timer to automate
-
-You can run the following code directly, or write it yourself by referring to this project, or just use crontab to automate it.
+Use systemd timer to automate.
 
 ```
 curl -o /lib/systemd/system/ddns.service https://gitlab.com/fernvenue/cloudflare-ddns/-/raw/master/ddns.service
@@ -49,32 +66,15 @@ systemctl start ddns.timer
 systemctl status ddns
 ```
 
-## Something else
+<details><summary>What if I using non-systemd Unix system?</summary>
 
-By default, [icanhazip](https://github.com/major/icanhaz) is used to get the public IP address. It is hosted on Cloudflare and works on two domains:
+Maybe you can use [cron](https://en.wikipedia.org/wiki/Cron) to automate it, for example add `0 5 * * * /usr/local/bin/ddns.sh` to the cron configuration, and the configuration file for a user can be edited by calling `crontab -e` regardless of where the actual implementation stores this file.
 
-- https://ipv4.icanhazip.com
-- https://ipv6.icanhazip.com
+</details>
 
-If you are located in mainland China or other areas with poor connectivity to Cloudflare, you can try to use the api of SJTU, which works on two domains:
+**Notice: if you changed any Cloudflare account information, make sure it is also changed in the script.**
 
-- https://whatismyip.sjtu.edu.cn
-- https://v6.whatismyip.sjtu.edu.cn
+## Links
 
-At the same time, you can also try to use [fernvenue/workers-scripts](https://github.com/fernvenue/workers-scripts#return-public-ip-as-textplain) to build your own api service on Cloudflare Workers.  
-
-It is also simple on [NGINX](https://nginx.org):
-
-```
-location /ip {
-    default_type text/plain;
-    return 200 "$remote_addr\n";
-}
-```
-
-**In addition, if you change any Cloudflare account information, make sure it is also changed in the script.**
-
-## For more information
-
-- Dynamic DNS: https://www.cloudflare.com/learning/dns/glossary/dynamic-dns
-- Cloudflare API: https://developers.cloudflare.com/api
+- [Cloudflare APIs documantation](https://developers.cloudflare.com/api)
+- [What is dynamic DNS (DDNS)?](https://www.cloudflare.com/learning/dns/glossary/dynamic-dns)
