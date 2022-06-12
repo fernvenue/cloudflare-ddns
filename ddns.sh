@@ -8,17 +8,23 @@ CLOUDFLARE_RECORD_NAME=
 CLOUDFLARE_RECORD_TYPE=
 CLOUDFLARE_USER_MAIL=
 CLOUDFLARE_ZONE_NAME=
-FORCE_UPDATE=false
+OUTBOUND_INTERFACE=
+SOCKS_ADDR=
+SOCKS_PORT=
 TELEGRAM_BOT_ID=
 TELEGRAM_CHAT_ID=
+FORCE_UPDATE=false
 
-while getopts k:n:t:u:z:b:c:f opts; do
+while getopts k:n:t:u:z:i:a:p:b:c:f opts; do
 	case ${opts} in
 		k) CLOUDFLARE_API_KEY=${OPTARG} ;;
 		n) CLOUDFLARE_RECORD_NAME=${OPTARG} ;;
 		t) CLOUDFLARE_RECORD_TYPE=${OPTARG} ;;
 		u) CLOUDFLARE_USER_MAIL=${OPTARG} ;;
 		z) CLOUDFLARE_ZONE_NAME=${OPTARG} ;;
+		i) OUTBOUND_INTERFACE=${OPTARG} ;;
+		a) SOCKS_ADDR=${OPTARG} ;;
+		p) SOCKS_PORT=${OPTARG} ;;
 		b) TELEGRAM_BOT_ID=${OPTARG} ;;
 		c) TELEGRAM_CHAT_ID=${OPTARG} ;;
 		f) FORCE_UPDATE=true ;;
@@ -26,12 +32,14 @@ while getopts k:n:t:u:z:b:c:f opts; do
 done
 
 if [ "$CLOUDFLARE_API_KEY" = "" ]; then
-	printf "Error: CLOUDFLARE_API_KEY is required.\n"
+	LOG_TIME=`date --rfc-3339 sec`
+	printf "$LOG_TIME: CLOUDFLARE_API_KEY is required.\n"
 	exit 2
 fi
 
 if [ "$CLOUDFLARE_RECORD_NAME" = "" ]; then
-	printf "Error: CLOUDFLARE_RECORD_NAME is required.\n"
+	LOG_TIME=`date --rfc-3339 sec`
+	printf "$LOG_TIME: CLOUDFLARE_RECORD_NAME is required.\n"
 	exit 2
 fi
 
@@ -57,7 +65,24 @@ if [ "$CLOUDFLARE_ZONE_NAME" = "" ]; then
 	exit 2
 fi
 
-PUBLIC_IP=`curl -s $IP_API`
+if [ "$OUTBOUND_INTERFACE" != "" ]; then
+	CURL_INTERFACE="--interface $OUTBOUND_INTERFACE"
+else
+	CURL_INTERFACE=""
+fi
+
+if [ "$SOCKS_ADDR" != "" ]; then
+	if [ "$SOCKS_PORT" != "" ] && [ "$SOCKS_PORT" -gt 0 ] && [ "$SOCKS_PORT" -lt 65536 ]; then
+		CURL_PROXY="-x socks5h://$SOCKS_ADDR:$SOCKS_PORT"
+	else
+		LOG_TIME=`date --rfc-3339 sec`
+		printf "$LOG_TIME: Invalid socks server prot, it must be in 1-65535."
+	fi
+else
+	CURL_PROXY=""
+fi
+
+PUBLIC_IP=`curl $CURL_INTERFACE -s $IP_API`
 PUBLIC_IP_FILE=$HOME/.IP::$CLOUDFLARE_RECORD_NAME.ddns
 
 if [ -f $PUBLIC_IP_FILE ]; then
@@ -80,8 +105,8 @@ if [ -f $CLOUDFLARE_ID_FILE ] && [ $(wc -l $CLOUDFLARE_ID_FILE | cut -d " " -f 1
 		CLOUDFLARE_ZONE_ID=$(sed -n '1,1p' "$CLOUDFLARE_ID_FILE")
 		CLOUDFLARE_RECORD_ID=$(sed -n '2,1p' "$CLOUDFLARE_ID_FILE")
 else
-	CLOUDFLARE_ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$CLOUDFLARE_ZONE_NAME" -H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" -H "X-Auth-Key: $CLOUDFLARE_API_KEY" -H "Content-Type: application/json" | grep -Po '(?<="id":")[^"]*' | head -1 )
-    CLOUDFLARE_RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records?name=$CLOUDFLARE_RECORD_NAME" -H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" -H "X-Auth-Key: $CLOUDFLARE_API_KEY" -H "Content-Type: application/json"  | grep -Po '(?<="id":")[^"]*' | head -1 )
+	CLOUDFLARE_ZONE_ID=$(curl $CURL_INTERFACE $CURL_PROXY -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$CLOUDFLARE_ZONE_NAME" -H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" -H "X-Auth-Key: $CLOUDFLARE_API_KEY" -H "Content-Type: application/json" | grep -Po '(?<="id":")[^"]*' | head -1 )
+    CLOUDFLARE_RECORD_ID=$(curl $CURL_INTERFACE $CURL_PROXY -s -X GET "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records?name=$CLOUDFLARE_RECORD_NAME" -H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" -H "X-Auth-Key: $CLOUDFLARE_API_KEY" -H "Content-Type: application/json"  | grep -Po '(?<="id":")[^"]*' | head -1 )
 	printf "$CLOUDFLARE_ZONE_ID\n" > $CLOUDFLARE_ID_FILE
 	printf "$CLOUDFLARE_RECORD_ID\n" >> $CLOUDFLARE_ID_FILE
 	printf "$CLOUDFLARE_ZONE_NAME\n" >> $CLOUDFLARE_ID_FILE
@@ -91,7 +116,7 @@ fi
 LOG_TIME=`date --rfc-3339 sec`
 printf "$LOG_TIME: Updating $CLOUDFLARE_RECORD_NAME to $PUBLIC_IP...\n"
 
-CLOUDFLARE_API_RESPONSE=$(curl -o /dev/null -s -w "%{http_code}\n" -X PUT "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records/$CLOUDFLARE_RECORD_ID" \
+CLOUDFLARE_API_RESPONSE=$(curl $CURL_INTERFACE $CURL_PROXY -o /dev/null -s -w "%{http_code}\n" -X PUT "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records/$CLOUDFLARE_RECORD_ID" \
 	-H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" \
 	-H "X-Auth-Key: $CLOUDFLARE_API_KEY" \
 	-H "Content-Type: application/json" \
@@ -108,7 +133,7 @@ else
 	if [ "$TELEGRAM_BOT_ID" != "" ]; then
 		LOG_TIME=`date --rfc-3339 sec`
 		printf "$LOG_TIME: Reporting to Telegram...\n"
-		TELEGRAM_API_RESPONSE=`curl -o /dev/null -s -w "%{http_code}\n" "https://api.telegram.org/bot$TELEGRAM_BOT_ID/sendMessage?chat_id=$TELEGRAM_CHAT_ID&parse_mode=HTML&text=<b>DDNS%20Notification:</b>%0A$CLOUDFLARE_RECORD_NAME%20successfully%20updated%20to%20$PUBLIC_IP"`
+		TELEGRAM_API_RESPONSE=`curl $CURL_INTERFACE $CURL_PROXY -o /dev/null -s -w "%{http_code}\n" "https://api.telegram.org/bot$TELEGRAM_BOT_ID/sendMessage?chat_id=$TELEGRAM_CHAT_ID&parse_mode=HTML&text=<b>DDNS%20Notification:</b>%0A$CLOUDFLARE_RECORD_NAME%20successfully%20updated%20to%20$PUBLIC_IP"`
 		if [ "$TELEGRAM_API_RESPONSE" != 200 ]; then
 			LOG_TIME=`date --rfc-3339 sec`
 			printf "$LOG_TIME: Report failed.\n"
