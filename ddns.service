@@ -1,0 +1,10 @@
+[Unit]
+Description=Cloudflare DDNS Service
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+Restart=on-failure                                                                                                               
+RestartSec=5s
+ExecStart=/bin/bash /usr/local/bin/ddns.sh
