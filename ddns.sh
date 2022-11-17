@@ -44,9 +44,9 @@ if [ "$CLOUDFLARE_RECORD_NAME" = "" ]; then
 fi
 
 if [ "$CLOUDFLARE_RECORD_TYPE" = "A" ]; then
-	IP_API="https://ipv4.icanhazip.com"
+	IP_API="-4 https://icanhazip.com"
 elif [ "$CLOUDFLARE_RECORD_TYPE" = "AAAA" ]; then
-	IP_API="https://ipv6.icanhazip.com"
+	IP_API="-6 https://icanhazip.com"
 else
 	LOG_TIME=`date --rfc-3339 sec`
 	printf "$LOG_TIME: Invalid record type, CLOUDFLARE_RECORD_TYPE can only be A or AAAA.\n"
