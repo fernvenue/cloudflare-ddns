@@ -13,6 +13,8 @@ A lightweight Cloudflare Dynamic DNS shell script.
 - [x] Specific outbound interface.
 - [x] Telegram notification.
 - [x] Socks proxy for Cloudflare and Telegram APIs.
+- [x] Support to use API Token instead of Global API Key.
+- [ ] Updating multiple records at once.
 
 ## Usage
 
@@ -23,6 +25,7 @@ curl -o /usr/local/bin/ddns.sh https://gitlab.com/fernvenue/cloudflare-ddns/-/ra
 vim /usr/local/bin/ddns.sh
 ```
 
+- `CLOUDFLARE_API_TOKEN`: API Token with the permission. ([How to Create an API token?](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/))
 - `CLOUDFLARE_API_KEY`: Global API Key of your Cloudflare account.
 - `CLOUDFLARE_RECORD_NAME`: Record name, such as `ddns.example.com`.
 - `CLOUDFLARE_RECORD_TYPE`: Record type, can be A or AAAA.
@@ -37,6 +40,7 @@ vim /usr/local/bin/ddns.sh
 
 You can also define parameters by flags:
 
+- `-t` = `$CLOUDFLARE_API_TOKEN`
 - `-k` = `$CLOUDFLARE_API_KEY`
 - `-n` = `$CLOUDFLARE_RECORD_NAME`
 - `-t` = `$CLOUDFLARE_RECORD_TYPE`
@@ -77,4 +81,5 @@ Maybe you can use [cron](https://en.wikipedia.org/wiki/Cron) to automate it, for
 ## Links
 
 - [Cloudflare APIs documantation](https://developers.cloudflare.com/api)
+- [Cloudflare Fundamentals: Create an API token](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/)
 - [What is dynamic DNS (DDNS)?](https://www.cloudflare.com/learning/dns/glossary/dynamic-dns)
