@@ -3,6 +3,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+CLOUDFLARE_API_TOKEN=
 CLOUDFLARE_API_KEY=
 CLOUDFLARE_RECORD_NAME=
 CLOUDFLARE_RECORD_TYPE=
@@ -17,6 +18,7 @@ FORCE_UPDATE=false
 
 while getopts k:n:t:u:z:i:a:p:b:c:f opts; do
 	case ${opts} in
+        t) CLOUDFLARE_API_TOKEN=${OPTARG} ;;
 		k) CLOUDFLARE_API_KEY=${OPTARG} ;;
 		n) CLOUDFLARE_RECORD_NAME=${OPTARG} ;;
 		t) CLOUDFLARE_RECORD_TYPE=${OPTARG} ;;
@@ -31,10 +33,15 @@ while getopts k:n:t:u:z:i:a:p:b:c:f opts; do
 	esac
 done
 
-if [ "$CLOUDFLARE_API_KEY" = "" ]; then
-	LOG_TIME=`date --rfc-3339 sec`
-	printf "$LOG_TIME: CLOUDFLARE_API_KEY is required.\n"
-	exit 2
+if [ "$CLOUDFLARE_API_TOKEN" = "" ] && [ "$CLOUDFLARE_API_KEY" = "" ]; then
+    LOG_TIME=`date --rfc-3339 sec`
+    printf "$LOG_TIME: CLOUDFLARE_API_TOKEN or CLOUDFLARE_API_KEY is required.\n"
+    exit 2
+fi
+
+if [ "$CLOUDFLARE_API_TOKEN" != "" ] && [ "$CLOUDFLARE_API_KEY" != "" ]; then
+    LOG_TIME=`date --rfc-3339 sec`
+    printf "$LOG_TIME: CLOUDFLARE_API_TOKEN and CLOUDFLARE_API_KEY both set, CLOUDFLARE_API_KEY will be ignored.\n"
 fi
 
 if [ "$CLOUDFLARE_RECORD_NAME" = "" ]; then
@@ -105,22 +112,41 @@ if [ -f $CLOUDFLARE_ID_FILE ] && [ $(wc -l $CLOUDFLARE_ID_FILE | cut -d " " -f 1
 		CLOUDFLARE_ZONE_ID=$(sed -n '1,1p' "$CLOUDFLARE_ID_FILE")
 		CLOUDFLARE_RECORD_ID=$(sed -n '2,1p' "$CLOUDFLARE_ID_FILE")
 else
-	CLOUDFLARE_ZONE_ID=$(curl $CURL_INTERFACE $CURL_PROXY -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$CLOUDFLARE_ZONE_NAME" -H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" -H "X-Auth-Key: $CLOUDFLARE_API_KEY" -H "Content-Type: application/json" | grep -Po '(?<="id":")[^"]*' | head -1 )
-    CLOUDFLARE_RECORD_ID=$(curl $CURL_INTERFACE $CURL_PROXY -s -X GET "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records?name=$CLOUDFLARE_RECORD_NAME" -H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" -H "X-Auth-Key: $CLOUDFLARE_API_KEY" -H "Content-Type: application/json"  | grep -Po '(?<="id":")[^"]*' | head -1 )
-	printf "$CLOUDFLARE_ZONE_ID\n" > $CLOUDFLARE_ID_FILE
-	printf "$CLOUDFLARE_RECORD_ID\n" >> $CLOUDFLARE_ID_FILE
-	printf "$CLOUDFLARE_ZONE_NAME\n" >> $CLOUDFLARE_ID_FILE
-	printf "$CLOUDFLARE_RECORD_NAME" >> $CLOUDFLARE_ID_FILE
+    if [ "$CLOUDFLARE_API_TOKEN" != "" ]; then
+        CLOUDFLARE_API_KEY=$CLOUDFLARE_API_TOKEN
+	    CLOUDFLARE_ZONE_ID=$(curl $CURL_INTERFACE $CURL_PROXY -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$CLOUDFLARE_ZONE_NAME" -H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" | grep -Po '(?<="id":")[^"]*' | head -1 )
+        CLOUDFLARE_RECORD_ID=$(curl $CURL_INTERFACE $CURL_PROXY -s -X GET "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records?name=$CLOUDFLARE_RECORD_NAME" -H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json"  | grep -Po '(?<="id":")[^"]*' | head -1 )
+	    printf "$CLOUDFLARE_ZONE_ID\n" > $CLOUDFLARE_ID_FILE
+	    printf "$CLOUDFLARE_RECORD_ID\n" >> $CLOUDFLARE_ID_FILE
+	    printf "$CLOUDFLARE_ZONE_NAME\n" >> $CLOUDFLARE_ID_FILE
+	    printf "$CLOUDFLARE_RECORD_NAME" >> $CLOUDFLARE_ID_FILE
+    else
+        CLOUDFLARE_API_KEY=$CLOUDFLARE_API_TOKEN
+	    CLOUDFLARE_ZONE_ID=$(curl $CURL_INTERFACE $CURL_PROXY -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$CLOUDFLARE_ZONE_NAME" -H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" -H "X-Auth-Key: $CLOUDFLARE_API_KEY" -H "Content-Type: application/json" | grep -Po '(?<="id":")[^"]*' | head -1 )
+        CLOUDFLARE_RECORD_ID=$(curl $CURL_INTERFACE $CURL_PROXY -s -X GET "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records?name=$CLOUDFLARE_RECORD_NAME" -H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" -H "X-Auth-Key: $CLOUDFLARE_API_KEY" -H "Content-Type: application/json"  | grep -Po '(?<="id":")[^"]*' | head -1 )
+	    printf "$CLOUDFLARE_ZONE_ID\n" > $CLOUDFLARE_ID_FILE
+	    printf "$CLOUDFLARE_RECORD_ID\n" >> $CLOUDFLARE_ID_FILE
+	    printf "$CLOUDFLARE_ZONE_NAME\n" >> $CLOUDFLARE_ID_FILE
+	    printf "$CLOUDFLARE_RECORD_NAME" >> $CLOUDFLARE_ID_FILE
+    fi
 fi
 
 LOG_TIME=`date --rfc-3339 sec`
 printf "$LOG_TIME: Updating $CLOUDFLARE_RECORD_NAME to $PUBLIC_IP...\n"
 
-CLOUDFLARE_API_RESPONSE=$(curl $CURL_INTERFACE $CURL_PROXY -o /dev/null -s -w "%{http_code}\n" -X PUT "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records/$CLOUDFLARE_RECORD_ID" \
-	-H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" \
-	-H "X-Auth-Key: $CLOUDFLARE_API_KEY" \
-	-H "Content-Type: application/json" \
-	--data "{\"id\":\"$CLOUDFLARE_ZONE_ID\",\"type\":\"$CLOUDFLARE_RECORD_TYPE\",\"name\":\"$CLOUDFLARE_RECORD_NAME\",\"content\":\"$PUBLIC_IP\", \"ttl\":120}")
+if [ "$CLOUDFLARE_API_TOKEN" != "" ]; then
+    CLOUDFLARE_API_RESPONSE=$(curl $CURL_INTERFACE $CURL_PROXY -o /dev/null -s -w "%{http_code}\n" -X PUT "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records/$CLOUDFLARE_RECORD_ID" \
+	    -H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" \
+	    -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+	    -H "Content-Type: application/json" \
+	    --data "{\"id\":\"$CLOUDFLARE_ZONE_ID\",\"type\":\"$CLOUDFLARE_RECORD_TYPE\",\"name\":\"$CLOUDFLARE_RECORD_NAME\",\"content\":\"$PUBLIC_IP\", \"ttl\":120}")
+else
+    CLOUDFLARE_API_RESPONSE=$(curl $CURL_INTERFACE $CURL_PROXY -o /dev/null -s -w "%{http_code}\n" -X PUT "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records/$CLOUDFLARE_RECORD_ID" \
+	    -H "X-Auth-Email: $CLOUDFLARE_USER_MAIL" \
+	    -H "X-Auth-Key: $CLOUDFLARE_API_KEY" \
+	    -H "Content-Type: application/json" \
+	    --data "{\"id\":\"$CLOUDFLARE_ZONE_ID\",\"type\":\"$CLOUDFLARE_RECORD_TYPE\",\"name\":\"$CLOUDFLARE_RECORD_NAME\",\"content\":\"$PUBLIC_IP\", \"ttl\":120}")
+fi
 
 if [ "$CLOUDFLARE_API_RESPONSE" != 200 ]; then
 	LOG_TIME=`date --rfc-3339 sec`
