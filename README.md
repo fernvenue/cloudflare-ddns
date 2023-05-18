@@ -39,7 +39,7 @@ You can also define parameters by flags:
 
 - `-k` = `$CLOUDFLARE_API_KEY`
 - `-n` = `$CLOUDFLARE_RECORD_NAME`
-- `-t` = `$CLOUDFLARE_RECORD_TYPE`
+- `-r` = `$CLOUDFLARE_RECORD_TYPE`
 - `-u` = `$CLOUDFLARE_USER_MAIL`
 - `-z` = `$CLOUDFLARE_ZONE_NAME`
 - `-i` = `$OUTBOUND_INTERFACE`
