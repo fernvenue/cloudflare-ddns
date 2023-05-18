@@ -13,6 +13,8 @@ A lightweight Cloudflare Dynamic DNS shell script.
 - [x] Specific outbound interface.
 - [x] Telegram notification.
 - [x] Socks proxy for Cloudflare and Telegram APIs.
+- [x] Use API token instead of global API key.
+- [ ] Update multiple records at the same time.
 
 ## Usage
 
@@ -37,6 +39,7 @@ vim /usr/local/bin/ddns.sh
 
 You can also define parameters by flags:
 
+- `-t` = `$CLOUDFLARE_API_TOKEN`
 - `-k` = `$CLOUDFLARE_API_KEY`
 - `-n` = `$CLOUDFLARE_RECORD_NAME`
 - `-r` = `$CLOUDFLARE_RECORD_TYPE`
