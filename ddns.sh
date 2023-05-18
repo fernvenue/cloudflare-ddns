@@ -16,12 +16,12 @@ TELEGRAM_BOT_ID=
 TELEGRAM_CHAT_ID=
 FORCE_UPDATE=false
 
-while getopts k:n:t:u:z:i:a:p:b:c:f opts; do
+while getopts k:n:t:u:z:i:a:p:b:c:fr: opts; do
 	case ${opts} in
         t) CLOUDFLARE_API_TOKEN=${OPTARG} ;;
 		k) CLOUDFLARE_API_KEY=${OPTARG} ;;
 		n) CLOUDFLARE_RECORD_NAME=${OPTARG} ;;
-		t) CLOUDFLARE_RECORD_TYPE=${OPTARG} ;;
+		r) CLOUDFLARE_RECORD_TYPE=${OPTARG} ;;
 		u) CLOUDFLARE_USER_MAIL=${OPTARG} ;;
 		z) CLOUDFLARE_ZONE_NAME=${OPTARG} ;;
 		i) OUTBOUND_INTERFACE=${OPTARG} ;;
@@ -30,6 +30,7 @@ while getopts k:n:t:u:z:i:a:p:b:c:f opts; do
 		b) TELEGRAM_BOT_ID=${OPTARG} ;;
 		c) TELEGRAM_CHAT_ID=${OPTARG} ;;
 		f) FORCE_UPDATE=true ;;
+		*);;
 	esac
 done
 
