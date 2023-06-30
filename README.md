@@ -14,7 +14,7 @@ A lightweight Cloudflare Dynamic DNS shell script.
 - [x] Telegram notification.
 - [x] Socks proxy for Cloudflare and Telegram APIs.
 - [x] Use API token instead of global API key.
-- [ ] Update multiple records at the same time.
+- [x] Update multiple records at the same time.
 
 ## Usage
 
@@ -76,6 +76,16 @@ Maybe you can use [cron](https://en.wikipedia.org/wiki/Cron) to automate it, for
 </details>
 
 **Notice: if you changed any Cloudflare account information, make sure it is also changed in the script.**
+
+### Multiple records?
+
+Rename your `/usr/local/bin/ddns.sh` to `/usr/local/bin/ddns-example1.sh`, `/usr/local/bin/ddns-example2.sh`, then you can use `ddns@.service` and `ddns@.timer` to update multiple records like:
+
+```
+systemctl start ddns@example1
+systemctl start ddns@example2
+...
+```
 
 ## Links
 

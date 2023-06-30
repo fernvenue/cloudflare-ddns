@@ -6,4 +6,4 @@ After=network-online.target
 User=root
 Type=simple
 Restart=on-failure
-ExecStart=/bin/bash /usr/local/bin/ddns.sh 
+ExecStart=/bin/bash /usr/local/bin/ddns-%i.sh 
