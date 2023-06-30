@@ -87,6 +87,8 @@ systemctl start ddns@example2
 ...
 ```
 
+By the way, multiple types for one single domain also supported and tested.
+
 ## Links
 
 - [Cloudflare APIs documantation](https://developers.cloudflare.com/api)
