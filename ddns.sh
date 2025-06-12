@@ -1,4 +1,6 @@
 #!/bin/bash
+
+
 set -o errexit
 set -o nounset
 set -o pipefail
@@ -51,14 +53,17 @@ if [ "$CLOUDFLARE_RECORD_NAME" = "" ]; then
 	exit 2
 fi
 
+PRIMARY_IP_API="https://icanhazip.com"
+BACKUP_IP_API="https://ifconfig.me"
+
 if [ "$CLOUDFLARE_RECORD_TYPE" = "A" ]; then
-	IP_API="https://ipv4.icanhazip.com"
+    IP_VERSION="-4"
 elif [ "$CLOUDFLARE_RECORD_TYPE" = "AAAA" ]; then
-	IP_API="https://ipv6.icanhazip.com"
+    IP_VERSION="-6"
 else
-	LOG_TIME=`date --rfc-3339 sec`
-	printf "$LOG_TIME: Invalid record type, CLOUDFLARE_RECORD_TYPE can only be A or AAAA.\n"
-	exit 2
+    LOG_TIME=`date --rfc-3339 sec`
+    printf "$LOG_TIME: Invalid record type, CLOUDFLARE_RECORD_TYPE can only be A or AAAA.\n"
+    exit 2
 fi
 
 if [ "$CLOUDFLARE_USER_MAIL" = "" ]; then
@@ -90,7 +95,21 @@ else
 	CURL_PROXY=""
 fi
 
-PUBLIC_IP=`curl $CURL_INTERFACE -s $IP_API`
+# Try to get IP using primary service
+PUBLIC_IP=`curl $IP_VERSION $CURL_INTERFACE $CURL_PROXY -s $PRIMARY_IP_API`
+# If primary service failed (empty result), try backup service
+if [ -z "$PUBLIC_IP" ]; then
+    LOG_TIME=`date --rfc-3339 sec`
+    printf "$LOG_TIME: Primary IP service failed, trying backup service...\n"
+    PUBLIC_IP=`curl $IP_VERSION $CURL_INTERFACE $CURL_PROXY -s $BACKUP_IP_API`
+    
+    if [ -z "$PUBLIC_IP" ]; then
+        LOG_TIME=`date --rfc-3339 sec`
+        printf "$LOG_TIME: Failed to get public IP address from both services.\n"
+        exit 1
+    fi
+fi
+
 PUBLIC_IP_FILE=$HOME/.IP::$CLOUDFLARE_RECORD_TYPE::$CLOUDFLARE_RECORD_NAME.ddns
 
 if [ -f $PUBLIC_IP_FILE ]; then
