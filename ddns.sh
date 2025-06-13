@@ -1,6 +1,4 @@
 #!/bin/bash
-
-
 set -o errexit
 set -o nounset
 set -o pipefail
@@ -95,9 +93,9 @@ else
 	CURL_PROXY=""
 fi
 
-# Try to get IP using primary service
+# Try to get IP using primary service;
 PUBLIC_IP=`curl $IP_VERSION $CURL_INTERFACE $CURL_PROXY -s $PRIMARY_IP_API`
-# If primary service failed (empty result), try backup service
+# If primary service failed (empty result), try backup service;
 if [ -z "$PUBLIC_IP" ]; then
     LOG_TIME=`date --rfc-3339 sec`
     printf "$LOG_TIME: Primary IP service failed, trying backup service...\n"
@@ -168,19 +166,32 @@ else
 		--data "{\"type\":\"$CLOUDFLARE_RECORD_TYPE\",\"name\":\"$CLOUDFLARE_RECORD_NAME\",\"content\":\"$PUBLIC_IP\", \"ttl\":120}")
 fi
 
-if [ "$CLOUDFLARE_API_RESPONSE" != 200 ]; then
+if [[ "$CLOUDFLARE_API_RESPONSE" != 200 ]]; then
 	LOG_TIME=`date --rfc-3339 sec`
 	printf "$LOG_TIME: Failed to update record.\n"
 	exit 1
 else
 	LOG_TIME=`date --rfc-3339 sec`
 	printf "$LOG_TIME: $CLOUDFLARE_RECORD_NAME successfully updated to $PUBLIC_IP.\n"
-	printf $PUBLIC_IP > $PUBLIC_IP_FILE
-	if [ "$TELEGRAM_BOT_ID" != "" ]; then
+	printf '%s' "$PUBLIC_IP" > "$PUBLIC_IP_FILE"
+	if [[ "$TELEGRAM_BOT_ID" != "" ]]; then
 		LOG_TIME=`date --rfc-3339 sec`
 		printf "$LOG_TIME: Reporting to Telegram...\n"
-		TELEGRAM_API_RESPONSE=`curl $CURL_INTERFACE $CURL_PROXY -o /dev/null -s -w "%{http_code}\n" "https://api.telegram.org/bot$TELEGRAM_BOT_ID/sendMessage?chat_id=$TELEGRAM_CHAT_ID&parse_mode=HTML&text=<b>DDNS%20Notification:</b>%0A$CLOUDFLARE_RECORD_TYPE%20type%20$CLOUDFLARE_RECORD_NAME%20successfully%20updated%20to%20$PUBLIC_IP"`
-		if [ "$TELEGRAM_API_RESPONSE" != 200 ]; then
+
+		TELEGRAM_JSON_PAYLOAD=$(jq -n \
+			--arg chat_id "$TELEGRAM_CHAT_ID" \
+			--arg line1 "✅ <b>DDNS Record Updated</b>" \
+			--arg line2 "🌐 <b>Domain:</b> <code>$CLOUDFLARE_RECORD_NAME</code>" \
+			--arg line3 "📄 <b>Type:</b> <code>$CLOUDFLARE_RECORD_TYPE</code>" \
+			--arg line4 "📶 <b>New IP:</b> <code>$PUBLIC_IP</code>" \
+			'{chat_id: $chat_id, parse_mode: "HTML", text: ($line1 + "\n" + $line2 + "\n" + $line3 + "\n" + $line4)}')
+
+		TELEGRAM_API_RESPONSE=$(curl $CURL_INTERFACE $CURL_PROXY -s -o /dev/null -w "%{http_code}" \
+			-X POST "https://api.telegram.org/bot${TELEGRAM_BOT_ID}/sendMessage" \
+			-H "Content-Type: application/json" \
+			-d "$TELEGRAM_JSON_PAYLOAD")
+
+		if [[ "$TELEGRAM_API_RESPONSE" != 200 ]]; then
 			LOG_TIME=`date --rfc-3339 sec`
 			printf "$LOG_TIME: Report failed.\n"
 			exit 2
