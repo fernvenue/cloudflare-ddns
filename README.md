@@ -2,7 +2,6 @@
 
 [![cloudflare-ddns](https://img.shields.io/badge/LICENSE-BSD3%20Clause%20Liscense-blue?style=flat-square)](./LICENSE)
 [![cloudflare-ddns](https://img.shields.io/badge/GitHub-Cloudflare%20DDNS-blueviolet?style=flat-square&logo=github)](https://github.com/fernvenue/cloudflare-ddns)
-[![cloudflare-ddns](https://img.shields.io/badge/GitLab-Cloudflare%20DDNS-orange?style=flat-square&logo=gitlab)](https://gitlab.com/fernvenue/cloudflare-ddns)
 
 A lightweight Cloudflare Dynamic DNS shell script.
 
