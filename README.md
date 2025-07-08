@@ -5,7 +5,7 @@
 
 A lightweight Cloudflare Dynamic DNS shell script.
 
-[English](./README.md) [中文](./README.zh.md)
+[中文說明](./README.zh.md)
 
 ## Features
 

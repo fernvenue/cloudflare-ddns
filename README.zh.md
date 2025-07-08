@@ -5,8 +5,6 @@
 
 輕量級 Cloudflare DDNS 腳本.
 
-[English](./README.md) [中文](./README.zh.md)
-
 ## 特性
 
 - [x] **雙棧支援**: 支援 IPv4 和 IPv6;
