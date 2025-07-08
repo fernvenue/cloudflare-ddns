@@ -1,0 +1,25 @@
+[Unit]
+Description=Cloudflare DDNS Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+DynamicUser=yes
+StateDirectory=cloudflare-ddns
+Type=oneshot
+Restart=on-failure
+ExecStart=/bin/bash /usr/local/bin/cloudflare-ddns.sh
+Environment="CLOUDFLARE_API_TOKEN=your_api_token_here"
+Environment="CLOUDFLARE_RECORD_NAMES=4.example.com,6.example.com,www.example.com"
+Environment="CLOUDFLARE_RECORD_TYPES=4,6,both"
+Environment="CLOUDFLARE_USER_MAIL=your-email@example.com"
+Environment="CLOUDFLARE_ZONE_NAME=example.com"
+
+# Optional Telegram notification (uncomment and modify as needed);
+# Environment="TELEGRAM_BOT_ID=123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+# Environment="TELEGRAM_CHAT_ID=-123456789"
+
+# Optional environments (uncomment and modify as needed);
+# Environment="OUTBOUND_INTERFACE=eth0"
+# Environment="SOCKS_ADDR=[::1]"
+# Environment="SOCKS_PORT=1080"
