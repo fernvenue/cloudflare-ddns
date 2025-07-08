@@ -8,21 +8,14 @@ A lightweight Cloudflare Dynamic DNS shell script.
 ## Features
 
 - [x] **IPv4 & IPv6 Support**: A and AAAA record types with batch processing;
-- [x] **Multi-Record Updates**: Comma-separated bulk operations with one-to-one type mapping;
-- [x] **Smart IP Detection**: Only updates when IP actually changes (with force override);
+- [x] **Multi-Record Updates**: Bulk operations with one-to-one type mapping;
+- [x] **Smart IP Detection**: Only updates when IP actually changes;
 - [x] **Auto Caching**: DNS record and zone ID caching for optimal performance;
-- [x] **Cloudflare API Tokens**: Recommended secure authentication method;
-- [x] **Legacy API Key Support**: Backward compatibility with global API keys;
-- [x] **SOCKS Proxy**: Full proxy support for both Cloudflare and Telegram APIs;
-- [x] **Network Interface Binding**: Multi-homed systems support;
-- [x] **Systemd Integration**: Complete service/timer with automatic restart and security isolation;
-- [x] **Dynamic User Support**: Enhanced security isolation for systemd service;
-- [x] **Telegram Notifications**: Rich HTML-formatted status updates with error reporting;
-- [x] **Custom Telegram Endpoint**: Support for custom Telegram API domains and proxies;
-- [x] **Comprehensive Logging**: RFC-3339 timestamps with detailed error handling;
-- [x] **Fallback IP Services**: Multiple IP detection sources for reliability;
-- [x] **Command-line Interface**: Full CLI support with help system;
-- [x] **Environment Variables**: Flexible configuration through env vars or CLI parameters;
+- [x] **Secure Authentication**: API tokens and legacy API key support;
+- [x] **SOCKS Proxy**: Full proxy support for all API calls;
+- [x] **Systemd Integration**: Complete service/timer with security isolation;
+- [x] **Telegram Notifications**: Rich status updates with error reporting;
+- [x] **Flexible Configuration**: Environment variables and CLI parameters;
 
 ## Usage
 
