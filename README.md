@@ -7,42 +7,21 @@ A lightweight Cloudflare Dynamic DNS shell script.
 
 ## Features
 
-### DNS Record Management
-- [x] Support A (IPv4) and AAAA (IPv6) record types;
-- [x] Update multiple DNS records simultaneously with batch processing;
-- [x] Support comma-separated record names for bulk operations;
-- [x] Flexible record type specification (4 for A, 6 for AAAA) with one-to-one mapping;
-- [x] Intelligent IP change detection to avoid unnecessary updates;
-- [x] Force update option to override IP change detection;
-- [x] Automatic DNS record and zone ID caching for improved performance;
-
-### Authentication & Security
-- [x] Support for Cloudflare API tokens (recommended) and legacy global API keys;
-- [x] Secure credential management through environment variables or command-line options;
-- [x] SOCKS proxy support for both Cloudflare and Telegram APIs;
-- [x] Network interface binding for multi-homed systems;
-
-### Systemd Integration
-- [x] Complete systemd service and timer configuration;
-- [x] Dynamic user support for enhanced security isolation;
-- [x] Automatic service restart on failure;
-- [x] State directory management with proper permissions;
-- [x] Configurable timer intervals with randomized delays;
-- [x] Network dependency handling (waits for network-online.target);
-
-### Monitoring & Notifications
-- [x] Rich Telegram notifications with HTML formatting;
-- [x] Detailed logging with RFC-3339 timestamps;
-- [x] Fallback IP detection services for reliability;
-- [x] Comprehensive error handling and status reporting;
-- [x] Backup API service support when primary fails;
-
-### Advanced Configuration
-- [x] Specific outbound network interface selection;
-- [x] Configurable working directory with fallback options;
-- [x] Legacy configuration file migration support;
-- [x] Command-line interface with comprehensive help system;
-- [x] Environment variable and CLI parameter override support;
+- [x] **IPv4 & IPv6 Support**: A and AAAA record types with batch processing;
+- [x] **Multi-Record Updates**: Comma-separated bulk operations with one-to-one type mapping;
+- [x] **Smart IP Detection**: Only updates when IP actually changes (with force override);
+- [x] **Auto Caching**: DNS record and zone ID caching for optimal performance;
+- [x] **Cloudflare API Tokens**: Recommended secure authentication method;
+- [x] **Legacy API Key Support**: Backward compatibility with global API keys;
+- [x] **SOCKS Proxy**: Full proxy support for both Cloudflare and Telegram APIs;
+- [x] **Network Interface Binding**: Multi-homed systems support;
+- [x] **Systemd Integration**: Complete service/timer with automatic restart and security isolation;
+- [x] **Dynamic User Support**: Enhanced security isolation for systemd service;
+- [x] **Telegram Notifications**: Rich HTML-formatted status updates with error reporting;
+- [x] **Comprehensive Logging**: RFC-3339 timestamps with detailed error handling;
+- [x] **Fallback IP Services**: Multiple IP detection sources for reliability;
+- [x] **Command-line Interface**: Full CLI support with help system;
+- [x] **Environment Variables**: Flexible configuration through env vars or CLI parameters;
 
 ## Usage
 
