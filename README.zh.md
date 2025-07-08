@@ -3,56 +3,56 @@
 [![cloudflare-ddns](https://img.shields.io/badge/LICENSE-BSD3%20Clause%20Liscense-blue?style=flat-square)](./LICENSE)
 [![cloudflare-ddns](https://img.shields.io/badge/GitHub-Cloudflare%20DDNS-blueviolet?style=flat-square&logo=github)](https://github.com/fernvenue/cloudflare-ddns)
 
-A lightweight Cloudflare Dynamic DNS shell script.
+輕量級 Cloudflare DDNS 腳本.
 
 [English](./README.md) [中文](./README.zh.md)
 
-## Features
+## 特性
 
-- [x] **Dual Stack Support**: Support for both IPv4 and IPv6;
-- [x] **Multi-Record Support**: Support for updating multiple records simultaneously;
-- [x] **Smart Monitoring**: Only updates DNS records when IP address changes;
-- [x] **Auto Caching**: Automatically caches DNS records and zone information for improved performance;
-- [x] **Multiple Authentication Support**: Support for both Cloudflare API Token and Legacy API Key authentication;
-- [x] **Proxy Protocol Support**: Support for configuring Socks proxy for API requests;
-- [x] **Systemd Support**: Provides service/timer examples and dynamic user support;
-- [x] **Telegram Push**: Highly readable Telegram notification push;
-- [x] **Flexible Configuration**: Support for command line parameter passing and environment variable configuration;
+- [x] **雙棧支援**: 支援 IPv4 和 IPv6;
+- [x] **多記錄支援**: 支援同時更新多個記錄;
+- [x] **智慧監測**: 僅在 IP 地址變動時更新 DNS 記錄;
+- [x] **自動緩存**: 自動緩存 DNS 記錄及 zone 信息, 提升性能;
+- [x] **多認證方式支援**: 支援 Cloudflare API Token 及 Legacy API Key 認證;
+- [x] **代理協議支援**: 支援對 API 請求配置 Socks 代理;
+- [x] **Systemd 支援**: 提供 service/timer 示例及動態用戶支援;
+- [x] **Telegram 推送**: 可讀性強的 Telegram 通知推送;
+- [x] **靈活配置**: 支援命令行參數傳遞與環境變量配置;
 
-## Usage
+## 使用方法
 
-Get the script:
+獲取腳本:
 
 ```
 curl -o /usr/local/bin/cloudflare-ddns.sh https://raw.githubusercontent.com/fernvenue/cloudflare-ddns/refs/heads/master/cloudflare-ddns.sh
 vim /usr/local/bin/cloudflare-ddns.sh
 ```
 
-Give it executable permission and run. **Make sure the corresponding domain already has records before running**, otherwise the script cannot find the records to update.
+賦予可執行權限並運行即可, **在運行之前務必確認對應的域名已有記錄**, 否則腳本無法找到需要更新的記錄.
 
-For detailed help information, you can use:
+如需詳細的幫助信息, 可以使用:
 
 ```bash
 ./cloudflare-ddns.sh --help
 ```
 
-### Environment Variables
+### 環境變量
 
-- `CLOUDFLARE_API_TOKEN`: API Token of your Cloudflare account (recommended);
-- `CLOUDFLARE_API_KEY`: Global API Key of your Cloudflare account;
-- `CLOUDFLARE_RECORD_NAMES`: Target record names, such as `ddns.example.com` or `ddns01.example.com,ddns02.example.com`;
-- `CLOUDFLARE_RECORD_TYPES`: Record types, can be `4` (A) or `6` (AAAA), corresponds one-to-one with record names, such as `4,6,4`;
-- `CLOUDFLARE_USER_MAIL`: The email address of your Cloudflare account;
-- `CLOUDFLARE_ZONE_NAME`: Zone name, such as `example.com`;
-- `OUTBOUND_INTERFACE`: Optional, used to specify the network interface;
-- `SOCKS_ADDR`: Optional, used to configure Socks proxy for API requests (Cloudflare and Telegram), IP detection does not go through this proxy;
-- `SOCKS_PORT`: Optional, corresponding Socks proxy port;
-- `TELEGRAM_BOT_ID`: Optional, Telegram bot ID;
-- `TELEGRAM_CHAT_ID`: Optional, Telegram target chat for push notifications;
-- `CUSTOM_TELEGRAM_ENDPOINT`: Optional, used to customize the API domain used for Telegram push;
-- `FORCE_UPDATE`: Force update, update DNS records even if IP hasn't changed;
+- `CLOUDFLARE_API_TOKEN`: 對應 Cloudflare 賬戶的 API Token (建議);
+- `CLOUDFLARE_API_KEY`: 對應 Cloudflare 賬戶的全局 API;
+- `CLOUDFLARE_RECORD_NAMES`: 目標記錄名稱, 如 `ddns.example.com` 或 `ddns01.example.com,ddns02.example.com`;
+- `CLOUDFLARE_RECORD_TYPES`: 記錄類型, 可以為 `4` (A) 或 `6` (AAAA), 與記錄名稱一一對應, 如 `4,6,4`;
+- `CLOUDFLARE_USER_MAIL`: 對應 Cloudflare 賬戶的郵件地址;
+- `CLOUDFLARE_ZONE_NAME`: 對應域的名稱, 如 `example.com`;
+- `OUTBOUND_INTERFACE`: 可選項, 用於指定網卡;
+- `SOCKS_ADDR`: 可選項, 用於為 API 請求 (Cloudflare 與 Telegram) 配置 Socks 代理, IP 檢測不經過此代理;
+- `SOCKS_PORT`: 可選項, 對應 Socks 代理的端口;
+- `TELEGRAM_BOT_ID`: 可選項, Telegram 機器人對應的 ID;
+- `TELEGRAM_CHAT_ID`: 可選項, Telegram 推送的目標對話;
+- `CUSTOM_TELEGRAM_ENDPOINT`: 可選項, 用於自定義 Telegram 推送所用的 API 域名;
+- `FORCE_UPDATE`: 強制更新, 即使 IP 沒有變化也更新 DNS 記錄;
 
-### Command Line Options
+### 命令行選項
 
 - `--cloudflare-api-token TOKEN` = `$CLOUDFLARE_API_TOKEN`
 - `--cloudflare-api-key KEY` = `$CLOUDFLARE_API_KEY`
@@ -70,25 +70,25 @@ For detailed help information, you can use:
 
 ### Systemd
 
-Refer to [`cloudflare-ddns.service`](./cloudflare-ddns.service) and [`cloudflare-ddns.timer`](./cloudflare-ddns.timer) for standard systemd service and systemd timer examples.
+移步 [`cloudflare-ddns.service`](./cloudflare-ddns.service) 和 [`cloudflare-ddns.timer`](./cloudflare-ddns.timer) 參考標準的 systemd service 及 systemd timer 示例.
 
-### System Dependencies
+### 系統依賴
 
-The script requires the following tools to be installed on your system:
+腳本需要在系統中安裝以下工具:
 
-- **curl** - For sending HTTP requests to Cloudflare API and IP detection services;
-- **jq** - For JSON parsing and configuration file operations;
-- **awk** - For text processing (usually pre-installed);
-- **grep** - For pattern matching (usually pre-installed);
-- **date** - For timestamp generation (usually pre-installed);
+- **curl** - 用於向 Cloudflare API 和 IP 檢測服務發送 HTTP 請求;
+- **jq** - 用於 JSON 解析和配置文件操作;
+- **awk** - 用於文本處理 (通常預裝);
+- **grep** - 用於模式匹配 (通常預裝);
+- **date** - 用於時間戳生成 (通常預裝);
 
-## Examples
+## 示例
 
-The following examples are some common use cases, for reference only. For production environment deployment, it is recommended to use with systemd service and systemd timer.
+以下示例是一些常見的應用場景, 僅供參考. 對於生產環境的部署, 建議搭配 systemd service 及 systemd timer 使用.
 
-### Single DNS Record Update (IPv4 only)
+### 單個 DNS 記錄更新 (僅 IPv4)
 
-Update a single A record with API token:
+使用 API token 更新單個 A 記錄:
 
 ```bash
 ./cloudflare-ddns.sh \
@@ -99,9 +99,9 @@ Update a single A record with API token:
   --cloudflare-record-types "4"
 ```
 
-### Single DNS Record Update (IPv6 only)
+### 單個 DNS 記錄更新 (僅 IPv6)
 
-Update a single AAAA record with API token:
+使用 API token 更新單個 AAAA 記錄:
 
 ```bash
 ./cloudflare-ddns.sh \
@@ -112,9 +112,9 @@ Update a single AAAA record with API token:
   --cloudflare-record-types "6"
 ```
 
-### Single Domain with Both IPv4 and IPv6
+### 單個域名同時更新 IPv4 和 IPv6
 
-Update both A and AAAA records for the same domain (note the repeated domain name):
+為同一個域名同時更新 A 和 AAAA 記錄 (注意域名重覆):
 
 ```bash
 ./cloudflare-ddns.sh \
@@ -125,13 +125,13 @@ Update both A and AAAA records for the same domain (note the repeated domain nam
   --cloudflare-record-types "4,6"
 ```
 
-In this example:
-- First `ddns.example.com` gets A record (IPv4)
-- Second `ddns.example.com` gets AAAA record (IPv6)
+在此示例中:
+- 第一個 `ddns.example.com` 獲得 A 記錄 (IPv4)
+- 第二個 `ddns.example.com` 獲得 AAAA 記錄 (IPv6)
 
-### Multiple DNS Records Update (Same Type)
+### 多個 DNS 記錄更新 (相同類型)
 
-Update multiple records with the same type (IPv4 only):
+更新多個相同類型的記錄 (僅 IPv4):
 
 ```bash
 ./cloudflare-ddns.sh \
@@ -142,9 +142,9 @@ Update multiple records with the same type (IPv4 only):
   --cloudflare-record-types "4,4,4"
 ```
 
-### Multiple DNS Records with Different Types (One-to-One Mapping)
+### 多個 DNS 記錄使用不同類型 (一對一映射)
 
-Update different records with different types (each record name corresponds to each record type):
+使用不同類型更新不同記錄 (每個記錄名稱對應每個記錄類型):
 
 ```bash
 ./cloudflare-ddns.sh \
@@ -155,12 +155,12 @@ Update different records with different types (each record name corresponds to e
   --cloudflare-record-types "4,6,4"
 ```
 
-In this example:
-- `api.example.com` gets A record (IPv4)
-- `ipv6.example.com` gets AAAA record (IPv6)
-- `home.example.com` gets A record (IPv4)
+在此示例中:
+- `api.example.com` 獲得 A 記錄 (IPv4)
+- `ipv6.example.com` 獲得 AAAA 記錄 (IPv6)
+- `home.example.com` 獲得 A 記錄 (IPv4)
 
-### Using Environment Variables
+### 使用環境變量
 
 ```bash
 export CLOUDFLARE_API_TOKEN="your-cloudflare-api-token"
@@ -172,7 +172,7 @@ export CLOUDFLARE_RECORD_TYPES="4,6,4"
 ./cloudflare-ddns.sh
 ```
 
-### With Telegram Notifications
+### 配合 Telegram 通知
 
 ```bash
 ./cloudflare-ddns.sh \
@@ -185,9 +185,9 @@ export CLOUDFLARE_RECORD_TYPES="4,6,4"
   --telegram-chat-id "-1001234567890"
 ```
 
-### With Custom Telegram Endpoint
+### 使用自定義 Telegram 端點
 
-Use custom Telegram API domain:
+使用自定義 Telegram API 域名:
 
 ```bash
 ./cloudflare-ddns.sh \
@@ -201,9 +201,9 @@ Use custom Telegram API domain:
   --custom-telegram-endpoint "my-telegram-api.example.com"
 ```
 
-### With SOCKS Proxy
+### 使用 Socks 代理
 
-Use SOCKS proxy for API requests:
+為 API 請求使用 Socks 代理:
 
 ```bash
 ./cloudflare-ddns.sh \
@@ -216,9 +216,9 @@ Use SOCKS proxy for API requests:
   --socks-port "1080"
 ```
 
-### Force Update
+### 強制更新
 
-Force update even if IP address hasn't changed:
+即使 IP 地址沒有變化也強制更新:
 
 ```bash
 ./cloudflare-ddns.sh \
