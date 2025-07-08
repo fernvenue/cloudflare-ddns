@@ -82,6 +82,7 @@ SOCKS_ADDR=${SOCKS_ADDR:-}
 SOCKS_PORT=${SOCKS_PORT:-}
 TELEGRAM_BOT_ID=${TELEGRAM_BOT_ID:-}
 TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+CUSTOM_TELEGRAM_ENDPOINT=${CUSTOM_TELEGRAM_ENDPOINT:-}
 FORCE_UPDATE=false
 
 # Parse command line arguments;
@@ -131,6 +132,10 @@ while [[ $# -gt 0 ]]; do
 			TELEGRAM_CHAT_ID="$2"
 			shift 2
 			;;
+		--custom-telegram-endpoint)
+			CUSTOM_TELEGRAM_ENDPOINT="$2"
+			shift 2
+			;;
 		--force-update)
 			FORCE_UPDATE=true
 			shift
@@ -138,19 +143,20 @@ while [[ $# -gt 0 ]]; do
 		-h|--help)
 			echo "Usage: $0 [OPTIONS]"
 			echo "Options:"
-			echo "  --cloudflare-api-token TOKEN    Cloudflare API token"
-			echo "  --cloudflare-api-key KEY        Cloudflare API key (legacy)"
-			echo "  --cloudflare-record-names NAMES Comma-separated DNS record names (e.g., 'www.example.com,api.example.com')"
-			echo "  --cloudflare-record-types TYPES Comma-separated DNS record types (4 for A, 6 for AAAA) corresponding one-to-one with record names"
-			echo "  --cloudflare-user-mail EMAIL    Cloudflare user email"
-			echo "  --cloudflare-zone-name NAME     Cloudflare zone name"
-			echo "  --outbound-interface IFACE      Outbound network interface"
-			echo "  --socks-addr ADDR               SOCKS proxy address"
-			echo "  --socks-port PORT               SOCKS proxy port"
-			echo "  --telegram-bot-id ID            Telegram bot ID for notifications"
-			echo "  --telegram-chat-id ID           Telegram chat ID for notifications"
-			echo "  --force-update                  Force update even if IP hasn't changed"
-			echo "  -h, --help                      Show this help message"
+			echo "  --cloudflare-api-token TOKEN        Cloudflare API token"
+			echo "  --cloudflare-api-key KEY            Cloudflare API key (legacy)"
+			echo "  --cloudflare-record-names NAMES     Comma-separated DNS record names (e.g., 'www.example.com,api.example.com')"
+			echo "  --cloudflare-record-types TYPES     Comma-separated DNS record types (4 for A, 6 for AAAA) corresponding one-to-one with record names"
+			echo "  --cloudflare-user-mail EMAIL        Cloudflare user email"
+			echo "  --cloudflare-zone-name NAME         Cloudflare zone name"
+			echo "  --outbound-interface IFACE          Outbound network interface"
+			echo "  --socks-addr ADDR                   SOCKS proxy address"
+			echo "  --socks-port PORT                   SOCKS proxy port"
+			echo "  --telegram-bot-id ID                Telegram bot ID for notifications"
+			echo "  --telegram-chat-id ID               Telegram chat ID for notifications"
+			echo "  --custom-telegram-endpoint DOMAIN   Custom Telegram API domain (default: api.telegram.org)"
+			echo "  --force-update                      Force update even if IP hasn't changed"
+			echo "  -h, --help                          Show this help message"
 			exit 0
 			;;
 		*)
@@ -486,8 +492,16 @@ send_telegram_notification() {
         --arg text "$message_text" \
         '{chat_id: $chat_id, parse_mode: "HTML", text: $text}')
     
+    # Use custom endpoint if provided, otherwise use default;
+    local telegram_api_url
+    if [ "$CUSTOM_TELEGRAM_ENDPOINT" != "" ]; then
+        telegram_api_url="https://${CUSTOM_TELEGRAM_ENDPOINT}/bot${TELEGRAM_BOT_ID}/sendMessage"
+    else
+        telegram_api_url="https://api.telegram.org/bot${TELEGRAM_BOT_ID}/sendMessage"
+    fi
+    
     local response=$(curl $CURL_INTERFACE $CURL_PROXY -s -o /dev/null -w "%{http_code}" \
-        -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_ID}/sendMessage" \
+        -X POST "$telegram_api_url" \
         -H "Content-Type: application/json" \
         -d "$telegram_payload")
     

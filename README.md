@@ -18,6 +18,7 @@ A lightweight Cloudflare Dynamic DNS shell script.
 - [x] **Systemd Integration**: Complete service/timer with automatic restart and security isolation;
 - [x] **Dynamic User Support**: Enhanced security isolation for systemd service;
 - [x] **Telegram Notifications**: Rich HTML-formatted status updates with error reporting;
+- [x] **Custom Telegram Endpoint**: Support for custom Telegram API domains and proxies;
 - [x] **Comprehensive Logging**: RFC-3339 timestamps with detailed error handling;
 - [x] **Fallback IP Services**: Multiple IP detection sources for reliability;
 - [x] **Command-line Interface**: Full CLI support with help system;
@@ -43,6 +44,7 @@ vim /usr/local/bin/cloudflare-ddns.sh
 - `SOCKS_PORT`: Optional, your socks server port.
 - `TELEGRAM_BOT_ID`: Optional, your telegram bot ID.
 - `TELEGRAM_CHAT_ID`: Optional, your telegram account or channel ID.
+- `CUSTOM_TELEGRAM_ENDPOINT`: Optional, custom Telegram API domain (default: api.telegram.org).
 - `FORCE_UPDATE`: Used to update anyway even if the IP unchanged, default is `false`.
 
 You can also define parameters by command line options:
@@ -58,6 +60,7 @@ You can also define parameters by command line options:
 - `--socks-port PORT` = `$SOCKS_PORT`
 - `--telegram-bot-id ID` = `$TELEGRAM_BOT_ID`
 - `--telegram-chat-id ID` = `$TELEGRAM_CHAT_ID`
+- `--custom-telegram-endpoint DOMAIN` = `$CUSTOM_TELEGRAM_ENDPOINT`
 - `--force-update` = `$FORCE_UPDATE`
 
 Give permission and run. **You must have resolved the target domain name to an address.**
@@ -72,12 +75,12 @@ We also provide systemd service and timer configuration files for automated exec
 ### System Dependencies
 The script requires the following tools to be installed on your system:
 
-- **bash** - Shell interpreter (usually pre-installed on most Linux distributions)
-- **curl** - For making HTTP requests to Cloudflare API and IP detection services
-- **jq** - For JSON parsing and manipulation of configuration files
-- **awk** - For text processing (usually pre-installed)
-- **grep** - For pattern matching (usually pre-installed)
-- **date** - For timestamp generation (usually pre-installed)
+- **bash** - Shell interpreter (usually pre-installed on most Linux distributions);
+- **curl** - For making HTTP requests to Cloudflare API and IP detection services;
+- **jq** - For JSON parsing and manipulation of configuration files;
+- **awk** - For text processing (usually pre-installed);
+- **grep** - For pattern matching (usually pre-installed);
+- **date** - For timestamp generation (usually pre-installed);
 
 ## Examples
 
@@ -182,6 +185,22 @@ Enable Telegram notifications for DNS updates:
   --cloudflare-record-types "4" \
   --telegram-bot-id "123456789:ABCdefGHIjklMNOpqrsTUVwxyz" \
   --telegram-chat-id "-1001234567890"
+```
+
+### With Custom Telegram Endpoint
+
+Use custom Telegram API domain (useful for proxies or alternative endpoints):
+
+```bash
+./cloudflare-ddns.sh \
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "ddns.example.com" \
+  --cloudflare-record-types "4" \
+  --telegram-bot-id "123456789:ABCdefGHIjklMNOpqrsTUVwxyz" \
+  --telegram-chat-id "-1001234567890" \
+  --custom-telegram-endpoint "my-telegram-api.example.com"
 ```
 
 ### With SOCKS Proxy
