@@ -83,6 +83,8 @@ SOCKS_PORT=${SOCKS_PORT:-}
 TELEGRAM_BOT_ID=${TELEGRAM_BOT_ID:-}
 TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
 CUSTOM_TELEGRAM_ENDPOINT=${CUSTOM_TELEGRAM_ENDPOINT:-}
+PRIMARY_IP_API=${PRIMARY_IP_API:-}
+BACKUP_IP_API=${BACKUP_IP_API:-}
 FORCE_UPDATE=false
 
 # Parse command line arguments;
@@ -134,6 +136,14 @@ while [[ $# -gt 0 ]]; do
 			;;
 		--custom-telegram-endpoint)
 			CUSTOM_TELEGRAM_ENDPOINT="$2"
+			shift 2
+			;;
+		--primary-ip-api)
+			PRIMARY_IP_API="$2"
+			shift 2
+			;;
+		--backup-ip-api)
+			BACKUP_IP_API="$2"
 			shift 2
 			;;
 		--force-update)
@@ -190,8 +200,8 @@ if [ ${#RECORD_NAMES_ARRAY[@]} -ne ${#RECORD_TYPES_ARRAY[@]} ]; then
 fi
 
 # IP service endpoints for retrieving public IP addresses;
-PRIMARY_IP_API="https://icanhazip.com/cdn-cgi/trace"
-BACKUP_IP_API="https://api.cloudflare.com/cdn-cgi/trace"
+PRIMARY_IP_API=${PRIMARY_IP_API:-"https://icanhazip.com/cdn-cgi/trace"}
+BACKUP_IP_API=${BACKUP_IP_API:-"https://api.cloudflare.com/cdn-cgi/trace"}
 
 # Parse and validate record types (4=IPv4, 6=IPv6);
 # Record types must correspond one-to-one with record names;
