@@ -6,6 +6,70 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# Logging function with timestamp;
+log() {
+    local level="$1"
+    shift
+    local message="$*"
+    local timestamp=$(date --rfc-3339=seconds)
+    printf "%s [%s]: %s\n" "$timestamp" "$level" "$message"
+}
+
+# Convenience logging functions;
+log_info() {
+    log "INFO" "$@"
+}
+
+log_error() {
+    log "ERROR" "$@"
+}
+
+log_warning() {
+    log "WARNING" "$@"
+}
+
+# Function to validate required parameter;
+validate_required_param() {
+    local param_name="$1"
+    local param_value="$2"
+    
+    if [ "$param_value" = "" ]; then
+        log_error "$param_name is required."
+        exit 2
+    fi
+}
+
+# Function to get public IP address for a specific IP version;
+get_public_ip() {
+    local ip_version="$1"
+    local public_ip
+    
+    public_ip=$(curl $ip_version $CURL_INTERFACE $CURL_PROXY -s $PRIMARY_IP_API | awk -F= '/^ip/ {print $2}')
+    
+    if [ -z "$public_ip" ]; then
+        log_warning "Primary IP service failed for IPv${ip_version#-}, trying backup service..."
+        public_ip=$(curl $ip_version $CURL_INTERFACE $CURL_PROXY -s $BACKUP_IP_API | awk -F= '/^ip/ {print $2}')
+        
+        if [ -z "$public_ip" ]; then
+            log_error "Failed to get public IPv${ip_version#-} address from all services."
+            exit 1
+        fi
+        
+        echo "$public_ip backup"
+    else
+        echo "$public_ip primary"
+    fi
+}
+
+# Function to update config file with JSON data;
+update_config_json() {
+    local jq_expression="$1"
+    local temp_json
+    
+    temp_json=$(jq "$jq_expression" "$CONFIG_FILE")
+    echo "$temp_json" > "$CONFIG_FILE"
+}
+
 # Environment variables and their defaults;
 CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN:-}
 CLOUDFLARE_API_KEY=${CLOUDFLARE_API_KEY:-}
@@ -99,35 +163,23 @@ done
 
 # Validate required parameters;
 if [ "$CLOUDFLARE_API_TOKEN" = "" ] && [ "$CLOUDFLARE_API_KEY" = "" ]; then
-    LOG_TIME=`date --rfc-3339 sec`
-    printf "$LOG_TIME: CLOUDFLARE_API_TOKEN or CLOUDFLARE_API_KEY is required.\n"
+    log_error "CLOUDFLARE_API_TOKEN or CLOUDFLARE_API_KEY is required."
     exit 2
 fi
 
 if [ "$CLOUDFLARE_API_TOKEN" != "" ] && [ "$CLOUDFLARE_API_KEY" != "" ]; then
-    LOG_TIME=`date --rfc-3339 sec`
-    printf "$LOG_TIME: CLOUDFLARE_API_TOKEN and CLOUDFLARE_API_KEY both set, CLOUDFLARE_API_KEY will be ignored.\n"
+    log_warning "CLOUDFLARE_API_TOKEN and CLOUDFLARE_API_KEY both set, CLOUDFLARE_API_KEY will be ignored."
 fi
 
-if [ "$CLOUDFLARE_RECORD_NAMES" = "" ]; then
-	LOG_TIME=`date --rfc-3339 sec`
-	printf "$LOG_TIME: CLOUDFLARE_RECORD_NAMES is required.\n"
-	exit 2
-fi
-
-if [ "$CLOUDFLARE_RECORD_TYPES" = "" ]; then
-	LOG_TIME=`date --rfc-3339 sec`
-	printf "$LOG_TIME: CLOUDFLARE_RECORD_TYPES is required.\n"
-	exit 2
-fi
+validate_required_param "CLOUDFLARE_RECORD_NAMES" "$CLOUDFLARE_RECORD_NAMES"
+validate_required_param "CLOUDFLARE_RECORD_TYPES" "$CLOUDFLARE_RECORD_TYPES"
 
 # Validate that the number of record names matches the number of record types;
 IFS=',' read -ra RECORD_NAMES_ARRAY <<< "$CLOUDFLARE_RECORD_NAMES"
 IFS=',' read -ra RECORD_TYPES_ARRAY <<< "$CLOUDFLARE_RECORD_TYPES"
 
 if [ ${#RECORD_NAMES_ARRAY[@]} -ne ${#RECORD_TYPES_ARRAY[@]} ]; then
-	LOG_TIME=`date --rfc-3339 sec`
-	printf "$LOG_TIME: Number of record names (${#RECORD_NAMES_ARRAY[@]}) must match number of record types (${#RECORD_TYPES_ARRAY[@]}).\n"
+	log_error "Number of record names (${#RECORD_NAMES_ARRAY[@]}) must match number of record types (${#RECORD_TYPES_ARRAY[@]})."
 	exit 2
 fi
 
@@ -151,8 +203,7 @@ for user_type in "${USER_TYPES[@]}"; do
         RECORD_TYPE_MAPPINGS+=("6")
         SEEN_GLOBAL_TYPES["AAAA"]=1
     else
-        LOG_TIME=`date --rfc-3339 sec`
-        printf "$LOG_TIME: Invalid record type '$user_type', supported types are: 4, 6.\n"
+        log_error "Invalid record type '$user_type', supported types are: 4, 6."
         exit 2
     fi
 done
@@ -166,17 +217,8 @@ if [ -n "${SEEN_GLOBAL_TYPES["AAAA"]:-}" ]; then
     IP_VERSIONS+=("-6")
 fi
 
-if [ "$CLOUDFLARE_USER_MAIL" = "" ]; then
-	LOG_TIME=`date --rfc-3339 sec`
-	printf "$LOG_TIME: CLOUDFLARE_USER_MAIL is required.\n"
-	exit 2
-fi
-
-if [ "$CLOUDFLARE_ZONE_NAME" = "" ]; then
-	LOG_TIME=`date --rfc-3339 sec`
-	printf "$LOG_TIME: CLOUDFLARE_ZONE_NAME is required.\n"
-	exit 2
-fi
+validate_required_param "CLOUDFLARE_USER_MAIL" "$CLOUDFLARE_USER_MAIL"
+validate_required_param "CLOUDFLARE_ZONE_NAME" "$CLOUDFLARE_ZONE_NAME"
 
 # Configure network interface for curl if specified;
 if [ "$OUTBOUND_INTERFACE" != "" ]; then
@@ -190,8 +232,8 @@ if [ "$SOCKS_ADDR" != "" ]; then
 	if [ "$SOCKS_PORT" != "" ] && [ "$SOCKS_PORT" -gt 0 ] && [ "$SOCKS_PORT" -lt 65536 ]; then
 		CURL_PROXY="-x socks5h://$SOCKS_ADDR:$SOCKS_PORT"
 	else
-		LOG_TIME=`date --rfc-3339 sec`
-		printf "$LOG_TIME: Invalid socks server prot, it must be in 1-65535."
+		log_error "Invalid socks server port, it must be in 1-65535."
+		exit 2
 	fi
 else
 	CURL_PROXY=""
@@ -202,27 +244,14 @@ declare -A PUBLIC_IPS
 declare -A USED_BACKUP_APIS
 
 for ip_version in "${IP_VERSIONS[@]}"; do
-    PUBLIC_IP=`curl $ip_version $CURL_INTERFACE $CURL_PROXY -s $PRIMARY_IP_API | awk -F= '/^ip/ {print $2}'`
-    USED_BACKUP_API=false
+    ip_result=$(get_public_ip "$ip_version")
+    public_ip=$(echo "$ip_result" | cut -d' ' -f1)
+    source_type=$(echo "$ip_result" | cut -d' ' -f2)
     
-    if [ -z "$PUBLIC_IP" ]; then
-        LOG_TIME=`date --rfc-3339 sec`
-        printf "$LOG_TIME: Primary IP service failed for IPv${ip_version#-}, trying backup service...\n"
-        PUBLIC_IP=`curl $ip_version $CURL_INTERFACE $CURL_PROXY -s $BACKUP_IP_API | awk -F= '/^ip/ {print $2}'`
-        USED_BACKUP_API=true
-        
-        if [ -z "$PUBLIC_IP" ]; then
-            LOG_TIME=`date --rfc-3339 sec`
-            printf "$LOG_TIME: Failed to get public IPv${ip_version#-} address from all services.\n"
-            exit 1
-        fi
-    fi
+    PUBLIC_IPS["$ip_version"]="$public_ip"
+    USED_BACKUP_APIS["$ip_version"]=$([ "$source_type" = "backup" ] && echo "true" || echo "false")
     
-    PUBLIC_IPS["$ip_version"]="$PUBLIC_IP"
-    USED_BACKUP_APIS["$ip_version"]="$USED_BACKUP_API"
-    
-    LOG_TIME=`date --rfc-3339 sec`
-    printf "$LOG_TIME: Got public IPv${ip_version#-} address: $PUBLIC_IP\n"
+    log_info "Got public IPv${ip_version#-} address: $public_ip"
 done
 
 # Determine working directory for storing state data;
@@ -243,12 +272,10 @@ fi
 if [ "$WORK_DIR" = "" ]; then
     WORK_DIR="/tmp/cloudflare-ddns"
     mkdir -p "$WORK_DIR" 2>/dev/null || {
-        LOG_TIME=`date --rfc-3339 sec`
-        printf "$LOG_TIME: Failed to create working directory, exiting.\n"
+        log_error "Failed to create working directory, exiting."
         exit 1
     }
-    LOG_TIME=`date --rfc-3339 sec`
-    printf "$LOG_TIME: Warning: Using /tmp/cloudflare-ddns, files may be lost on reboot.\n"
+    log_warning "Using /tmp/cloudflare-ddns, files may be lost on reboot."
 fi
 
 # Function to update a single DNS record;
@@ -257,16 +284,14 @@ update_dns_record() {
     local RECORD_TYPE="$2"
     local PUBLIC_IP="$3"
     
-    LOG_TIME=`date --rfc-3339 sec`
-    printf "$LOG_TIME: Processing $RECORD_TYPE record $RECORD_NAME...\n"
+    log_info "Processing $RECORD_TYPE record $RECORD_NAME..."
     
     local CLOUDFLARE_ZONE_ID=$(jq -r ".\"$CLOUDFLARE_ZONE_NAME\".zone_id // \"\"" "$CONFIG_FILE" 2>/dev/null || echo "")
     local CLOUDFLARE_RECORD_ID=$(jq -r ".\"$CLOUDFLARE_ZONE_NAME\".records.\"$RECORD_NAME\".\"$RECORD_TYPE\".record_id // \"\"" "$CONFIG_FILE" 2>/dev/null || echo "")
 
     # Fetch zone and record IDs if not cached;
     if [ "$CLOUDFLARE_ZONE_ID" = "" ] || [ "$CLOUDFLARE_RECORD_ID" = "" ]; then
-        LOG_TIME=`date --rfc-3339 sec`
-        printf "$LOG_TIME: Fetching zone and record IDs for $RECORD_TYPE $RECORD_NAME...\n"
+        log_info "Fetching zone and record IDs for $RECORD_TYPE $RECORD_NAME..."
         
         # Use API token or legacy API key for authentication;
         if [ "$CLOUDFLARE_API_TOKEN" != "" ]; then
@@ -279,17 +304,15 @@ update_dns_record() {
 
         # Save the fetched IDs to config file;
         local OLD_IP=$(jq -r ".\"$CLOUDFLARE_ZONE_NAME\".records.\"$RECORD_NAME\".\"$RECORD_TYPE\".last_ip // \"\"" "$CONFIG_FILE" 2>/dev/null || echo "")
-        local TEMP_JSON=$(jq ".\"$CLOUDFLARE_ZONE_NAME\".zone_id = \"$CLOUDFLARE_ZONE_ID\" |
+        update_config_json ".\"$CLOUDFLARE_ZONE_NAME\".zone_id = \"$CLOUDFLARE_ZONE_ID\" |
             .\"$CLOUDFLARE_ZONE_NAME\".records.\"$RECORD_NAME\".\"$RECORD_TYPE\" = {
                 \"record_id\": \"$CLOUDFLARE_RECORD_ID\",
                 \"last_ip\": \"$OLD_IP\",
                 \"last_updated\": \"$(date --rfc-3339=seconds)\"
-            }" "$CONFIG_FILE")
-        echo "$TEMP_JSON" > "$CONFIG_FILE"
+            }"
     fi
 
-    LOG_TIME=`date --rfc-3339 sec`
-    printf "$LOG_TIME: Updating $RECORD_TYPE $RECORD_NAME to $PUBLIC_IP...\n"
+    log_info "Updating $RECORD_TYPE $RECORD_NAME to $PUBLIC_IP..."
 
     # Send API request to update DNS record;
     local CLOUDFLARE_API_RESPONSE
@@ -309,17 +332,14 @@ update_dns_record() {
 
     # Check API response and update local cache;
     if [[ "$CLOUDFLARE_API_RESPONSE" != 200 ]]; then
-        LOG_TIME=$(date --rfc-3339=seconds)
-        printf "$LOG_TIME: Failed to update $RECORD_TYPE record $RECORD_NAME.\n"
+        log_error "Failed to update $RECORD_TYPE record $RECORD_NAME."
         return 1
     else
-        LOG_TIME=$(date --rfc-3339=seconds)
-        printf "$LOG_TIME: $RECORD_TYPE $RECORD_NAME successfully updated to $PUBLIC_IP.\n"
+        log_info "$RECORD_TYPE $RECORD_NAME successfully updated to $PUBLIC_IP."
 
         # Update local cache with new IP and timestamp;
-        local TEMP_JSON=$(jq ".\"$CLOUDFLARE_ZONE_NAME\".records.\"$RECORD_NAME\".\"$RECORD_TYPE\".last_ip = \"$PUBLIC_IP\" |
-            .\"$CLOUDFLARE_ZONE_NAME\".records.\"$RECORD_NAME\".\"$RECORD_TYPE\".last_updated = \"$(date --rfc-3339=seconds)\"" "$CONFIG_FILE")
-        echo "$TEMP_JSON" > "$CONFIG_FILE"
+        update_config_json ".\"$CLOUDFLARE_ZONE_NAME\".records.\"$RECORD_NAME\".\"$RECORD_TYPE\".last_ip = \"$PUBLIC_IP\" |
+            .\"$CLOUDFLARE_ZONE_NAME\".records.\"$RECORD_NAME\".\"$RECORD_TYPE\".last_updated = \"$(date --rfc-3339=seconds)\""
         return 0
     fi
 }
@@ -333,14 +353,12 @@ fi
 
 # Migrate config file from old formats to current format;
 if jq -e '.zones' "$CONFIG_FILE" >/dev/null 2>&1; then
-    LOG_TIME=`date --rfc-3339 sec`
-    printf "$LOG_TIME: Migrating config from zones wrapper format to direct format...\n"
+    log_info "Migrating config from zones wrapper format to direct format..."
     
     ZONES_DATA=$(jq -r '.zones' "$CONFIG_FILE" 2>/dev/null || echo "{}")
     echo "$ZONES_DATA" > "$CONFIG_FILE"
 elif jq -e '.records' "$CONFIG_FILE" >/dev/null 2>&1; then
-    LOG_TIME=`date --rfc-3339 sec`
-    printf "$LOG_TIME: Migrating config from records format to direct format...\n"
+    log_info "Migrating config from records format to direct format..."
     
     OLD_RECORDS=$(jq -r '.records | to_entries | .[] | "\(.key) \(.value.zone_name) \(.value.record_name) \(.value.record_type) \(.value.record_id) \(.value.last_ip) \(.value.last_updated)"' "$CONFIG_FILE" 2>/dev/null || echo "")
     echo '{}' > "$CONFIG_FILE"
@@ -348,13 +366,12 @@ elif jq -e '.records' "$CONFIG_FILE" >/dev/null 2>&1; then
     if [ "$OLD_RECORDS" != "" ]; then
         while IFS=' ' read -r key zone_name record_name record_type record_id last_ip last_updated; do
             if [ "$key" != "" ] && [ "$zone_name" != "" ] && [ "$record_name" != "" ] && [ "$record_type" != "" ]; then
-                TEMP_JSON=$(jq ".\"$zone_name\".zone_id = \"\" |
+                update_config_json ".\"$zone_name\".zone_id = \"\" |
                     .\"$zone_name\".records.\"$record_name\".\"$record_type\" = {
                         \"record_id\": \"$record_id\",
                         \"last_ip\": \"$last_ip\",
                         \"last_updated\": \"$last_updated\"
-                    }" "$CONFIG_FILE")
-                echo "$TEMP_JSON" > "$CONFIG_FILE"
+                    }"
             fi
         done <<< "$OLD_RECORDS"
     fi
@@ -376,10 +393,9 @@ done
 
 # Validate that number of record names matches number of record types;
 if [ ${#PROCESSED_RECORD_NAMES[@]} -ne ${#RECORD_TYPE_MAPPINGS[@]} ]; then
-    LOG_TIME=`date --rfc-3339 sec`
-    printf "$LOG_TIME: Number of record names (${#PROCESSED_RECORD_NAMES[@]}) does not match number of record types (${#RECORD_TYPE_MAPPINGS[@]}).\n"
-    printf "$LOG_TIME: Record names: ${PROCESSED_RECORD_NAMES[*]}\n"
-    printf "$LOG_TIME: Record types: ${RECORD_TYPE_MAPPINGS[*]}\n"
+    log_error "Number of record names (${#PROCESSED_RECORD_NAMES[@]}) does not match number of record types (${#RECORD_TYPE_MAPPINGS[@]})."
+    log_error "Record names: ${PROCESSED_RECORD_NAMES[*]}"
+    log_error "Record types: ${RECORD_TYPE_MAPPINGS[*]}"
     exit 2
 fi
 
@@ -396,8 +412,7 @@ for i in "${!PROCESSED_RECORD_NAMES[@]}"; do
         record_type="AAAA"
         current_ip="${PUBLIC_IPS["-6"]}"
     else
-        LOG_TIME=`date --rfc-3339 sec`
-        printf "$LOG_TIME: Invalid record type mapping '$record_type_mapping' for $record_name.\n"
+        log_error "Invalid record type mapping '$record_type_mapping' for $record_name."
         continue
     fi
     
@@ -405,8 +420,7 @@ for i in "${!PROCESSED_RECORD_NAMES[@]}"; do
     
     # Skip update if IP hasn't changed (unless forced);
     if [ "$current_ip" = "$OLD_PUBLIC_IP" ] && [ "$FORCE_UPDATE" = false ]; then
-        LOG_TIME=`date --rfc-3339 sec`
-        printf "$LOG_TIME: $record_type $record_name IP not changed ($current_ip), skipping...\n"
+        log_info "$record_type $record_name IP not changed ($current_ip), skipping..."
     else
         if update_dns_record "$record_name" "$record_type" "$current_ip"; then
             record_info="$record_type:$record_name"
@@ -427,13 +441,11 @@ for i in "${!PROCESSED_RECORD_NAMES[@]}"; do
 done
 
 if [ "$FAILED_RECORDS" != "" ]; then
-    LOG_TIME=$(date --rfc-3339=seconds)
-    printf "$LOG_TIME: Some records failed to update: $FAILED_RECORDS\n"
+    log_error "Some records failed to update: $FAILED_RECORDS"
 fi
 
 if [ "$UPDATED_RECORDS" = "" ]; then
-    LOG_TIME=`date --rfc-3339 sec`
-    printf "$LOG_TIME: No records were updated. Use --force to update anyway.\n"
+    log_info "No records were updated. Use --force to update anyway."
     exit 0
 fi
 
@@ -480,20 +492,17 @@ send_telegram_notification() {
         -d "$telegram_payload")
     
     if [[ "$response" != 200 ]]; then
-        LOG_TIME=$(date --rfc-3339=seconds)
-        printf "$LOG_TIME: Failed to send Telegram notification for $record_info (HTTP $response).\n"
+        log_error "Failed to send Telegram notification for $record_info (HTTP $response)."
         return 1
     else
-        LOG_TIME=$(date --rfc-3339=seconds)
-        printf "$LOG_TIME: Telegram notification sent for $record_info.\n"
+        log_info "Telegram notification sent for $record_info."
         return 0
     fi
 }
 
 # Send Telegram notifications for all updated records;
 if [[ "$TELEGRAM_BOT_ID" != "" ]] && [[ "$UPDATED_RECORDS" != "" ]]; then
-    LOG_TIME=$(date --rfc-3339=seconds)
-    printf "$LOG_TIME: Sending Telegram notifications...\n"
+    log_info "Sending Telegram notifications..."
 
     IFS=',' read -ra UPDATED_ARRAY <<< "$UPDATED_RECORDS"
     NOTIFICATION_FAILURES=0
@@ -508,11 +517,9 @@ if [[ "$TELEGRAM_BOT_ID" != "" ]] && [[ "$UPDATED_RECORDS" != "" ]]; then
     done
     
     if [ $NOTIFICATION_FAILURES -gt 0 ]; then
-        LOG_TIME=$(date --rfc-3339=seconds)
-        printf "$LOG_TIME: $NOTIFICATION_FAILURES Telegram notification(s) failed.\n"
+        log_error "$NOTIFICATION_FAILURES Telegram notification(s) failed."
     else
-        LOG_TIME=$(date --rfc-3339=seconds)
-        printf "$LOG_TIME: All Telegram notifications sent successfully.\n"
+        log_info "All Telegram notifications sent successfully."
     fi
 fi
 
