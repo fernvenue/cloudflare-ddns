@@ -23,69 +23,69 @@ FORCE_UPDATE=false
 # Parse command line arguments;
 while [[ $# -gt 0 ]]; do
 	case $1 in
-		--CLOUDFLARE_API_TOKEN)
+		--cloudflare-api-token)
 			CLOUDFLARE_API_TOKEN="$2"
 			shift 2
 			;;
-		--CLOUDFLARE_API_KEY)
+		--cloudflare-api-key)
 			CLOUDFLARE_API_KEY="$2"
 			shift 2
 			;;
-		--CLOUDFLARE_RECORD_NAMES)
+		--cloudflare-record-names)
 			CLOUDFLARE_RECORD_NAMES="$2"
 			shift 2
 			;;
-		--CLOUDFLARE_RECORD_TYPES)
+		--cloudflare-record-types)
 			CLOUDFLARE_RECORD_TYPES="$2"
 			shift 2
 			;;
-		--CLOUDFLARE_USER_MAIL)
+		--cloudflare-user-mail)
 			CLOUDFLARE_USER_MAIL="$2"
 			shift 2
 			;;
-		--CLOUDFLARE_ZONE_NAME)
+		--cloudflare-zone-name)
 			CLOUDFLARE_ZONE_NAME="$2"
 			shift 2
 			;;
-		--OUTBOUND_INTERFACE)
+		--outbound-interface)
 			OUTBOUND_INTERFACE="$2"
 			shift 2
 			;;
-		--SOCKS_ADDR)
+		--socks-addr)
 			SOCKS_ADDR="$2"
 			shift 2
 			;;
-		--SOCKS_PORT)
+		--socks-port)
 			SOCKS_PORT="$2"
 			shift 2
 			;;
-		--TELEGRAM_BOT_ID)
+		--telegram-bot-id)
 			TELEGRAM_BOT_ID="$2"
 			shift 2
 			;;
-		--TELEGRAM_CHAT_ID)
+		--telegram-chat-id)
 			TELEGRAM_CHAT_ID="$2"
 			shift 2
 			;;
-		--FORCE_UPDATE)
+		--force-update)
 			FORCE_UPDATE=true
 			shift
 			;;
 		-h|--help)
 			echo "Usage: $0 [OPTIONS]"
 			echo "Options:"
-			echo "  --CLOUDFLARE_API_TOKEN TOKEN    Cloudflare API token"
-			echo "  --CLOUDFLARE_API_KEY KEY        Cloudflare API key (legacy)"
-			echo "  --CLOUDFLARE_RECORD_NAMES NAMES Comma-separated DNS record names (e.g., 'www.example.com,api.example.com')"
-			echo "  --CLOUDFLARE_RECORD_TYPES TYPES Comma-separated DNS record types (4 for A, 6 for AAAA) corresponding one-to-one with record names"
-			echo "  --CLOUDFLARE_USER_MAIL EMAIL    Cloudflare user email"
-			echo "  --CLOUDFLARE_ZONE_NAME NAME     Cloudflare zone name"
-			echo "  --OUTBOUND_INTERFACE IFACE      Outbound network interface"
-			echo "  --SOCKS_ADDR ADDR               SOCKS proxy address"
-			echo "  --SOCKS_PORT PORT               SOCKS proxy port"
-			echo "  --TELEGRAM_BOT_ID ID            Telegram bot ID for notifications"
-			echo "  --TELEGRAM_CHAT_ID ID           Telegram chat ID for notifications"
-			echo "  --FORCE_UPDATE                  Force update even if IP hasn't changed"
+			echo "  --cloudflare-api-token TOKEN    Cloudflare API token"
+			echo "  --cloudflare-api-key KEY        Cloudflare API key (legacy)"
+			echo "  --cloudflare-record-names NAMES Comma-separated DNS record names (e.g., 'www.example.com,api.example.com')"
+			echo "  --cloudflare-record-types TYPES Comma-separated DNS record types (4 for A, 6 for AAAA) corresponding one-to-one with record names"
+			echo "  --cloudflare-user-mail EMAIL    Cloudflare user email"
+			echo "  --cloudflare-zone-name NAME     Cloudflare zone name"
+			echo "  --outbound-interface IFACE      Outbound network interface"
+			echo "  --socks-addr ADDR               SOCKS proxy address"
+			echo "  --socks-port PORT               SOCKS proxy port"
+			echo "  --telegram-bot-id ID            Telegram bot ID for notifications"
+			echo "  --telegram-chat-id ID           Telegram chat ID for notifications"
+			echo "  --force-update                  Force update even if IP hasn't changed"
 			echo "  -h, --help                      Show this help message"
 			exit 0
 			;;

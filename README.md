@@ -68,18 +68,18 @@ vim /usr/local/bin/cloudflare-ddns.sh
 
 You can also define parameters by command line options:
 
-- `--CLOUDFLARE_API_TOKEN TOKEN` = `$CLOUDFLARE_API_TOKEN`
-- `--CLOUDFLARE_API_KEY KEY` = `$CLOUDFLARE_API_KEY`
-- `--CLOUDFLARE_RECORD_NAMES NAMES` = `$CLOUDFLARE_RECORD_NAMES`
-- `--CLOUDFLARE_RECORD_TYPES TYPES` = `$CLOUDFLARE_RECORD_TYPES`
-- `--CLOUDFLARE_USER_MAIL EMAIL` = `$CLOUDFLARE_USER_MAIL`
-- `--CLOUDFLARE_ZONE_NAME NAME` = `$CLOUDFLARE_ZONE_NAME`
-- `--OUTBOUND_INTERFACE IFACE` = `$OUTBOUND_INTERFACE`
-- `--SOCKS_ADDR ADDR` = `$SOCKS_ADDR`
-- `--SOCKS_PORT PORT` = `$SOCKS_PORT`
-- `--TELEGRAM_BOT_ID ID` = `$TELEGRAM_BOT_ID`
-- `--TELEGRAM_CHAT_ID ID` = `$TELEGRAM_CHAT_ID`
-- `--FORCE_UPDATE` = `$FORCE_UPDATE`
+- `--cloudflare-api-token TOKEN` = `$CLOUDFLARE_API_TOKEN`
+- `--cloudflare-api-key KEY` = `$CLOUDFLARE_API_KEY`
+- `--cloudflare-record-names NAMES` = `$CLOUDFLARE_RECORD_NAMES`
+- `--cloudflare-record-types TYPES` = `$CLOUDFLARE_RECORD_TYPES`
+- `--cloudflare-user-mail EMAIL` = `$CLOUDFLARE_USER_MAIL`
+- `--cloudflare-zone-name NAME` = `$CLOUDFLARE_ZONE_NAME`
+- `--outbound-interface IFACE` = `$OUTBOUND_INTERFACE`
+- `--socks-addr ADDR` = `$SOCKS_ADDR`
+- `--socks-port PORT` = `$SOCKS_PORT`
+- `--telegram-bot-id ID` = `$TELEGRAM_BOT_ID`
+- `--telegram-chat-id ID` = `$TELEGRAM_CHAT_ID`
+- `--force-update` = `$FORCE_UPDATE`
 
 Give permission and run. **You must have resolved the target domain name to an address.**
 
@@ -108,11 +108,11 @@ Update a single A record with API token:
 
 ```bash
 ./cloudflare-ddns.sh \
-  --CLOUDFLARE_API_TOKEN "your-cloudflare-api-token" \
-  --CLOUDFLARE_USER_MAIL "your-email@example.com" \
-  --CLOUDFLARE_ZONE_NAME "example.com" \
-  --CLOUDFLARE_RECORD_NAMES "ddns.example.com" \
-  --CLOUDFLARE_RECORD_TYPES "4"
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "ddns.example.com" \
+  --cloudflare-record-types "4"
 ```
 
 ### Single DNS Record Update (IPv6 only)
@@ -121,11 +121,11 @@ Update records with AAAA records only:
 
 ```bash
 ./cloudflare-ddns.sh \
-  --CLOUDFLARE_API_TOKEN "your-cloudflare-api-token" \
-  --CLOUDFLARE_USER_MAIL "your-email@example.com" \
-  --CLOUDFLARE_ZONE_NAME "example.com" \
-  --CLOUDFLARE_RECORD_NAMES "ipv6.example.com" \
-  --CLOUDFLARE_RECORD_TYPES "6"
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "ipv6.example.com" \
+  --cloudflare-record-types "6"
 ```
 
 ### Single Domain with Both IPv4 and IPv6
@@ -134,11 +134,11 @@ Update both A and AAAA records for the same domain (note the repeated domain nam
 
 ```bash
 ./cloudflare-ddns.sh \
-  --CLOUDFLARE_API_TOKEN "your-cloudflare-api-token" \
-  --CLOUDFLARE_USER_MAIL "your-email@example.com" \
-  --CLOUDFLARE_ZONE_NAME "example.com" \
-  --CLOUDFLARE_RECORD_NAMES "ddns.example.com,ddns.example.com" \
-  --CLOUDFLARE_RECORD_TYPES "4,6"
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "ddns.example.com,ddns.example.com" \
+  --cloudflare-record-types "4,6"
 ```
 
 In this example:
@@ -151,11 +151,11 @@ Update multiple records with the same type (IPv4 only):
 
 ```bash
 ./cloudflare-ddns.sh \
-  --CLOUDFLARE_API_TOKEN "your-cloudflare-api-token" \
-  --CLOUDFLARE_USER_MAIL "your-email@example.com" \
-  --CLOUDFLARE_ZONE_NAME "example.com" \
-  --CLOUDFLARE_RECORD_NAMES "ddns.example.com,api.example.com,home.example.com" \
-  --CLOUDFLARE_RECORD_TYPES "4,4,4"
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "ddns.example.com,api.example.com,home.example.com" \
+  --cloudflare-record-types "4,4,4"
 ```
 
 ### Multiple DNS Records with Different Types (One-to-One Mapping)
@@ -164,11 +164,11 @@ Update different records with different types (each record name corresponds to e
 
 ```bash
 ./cloudflare-ddns.sh \
-  --CLOUDFLARE_API_TOKEN "your-cloudflare-api-token" \
-  --CLOUDFLARE_USER_MAIL "your-email@example.com" \
-  --CLOUDFLARE_ZONE_NAME "example.com" \
-  --CLOUDFLARE_RECORD_NAMES "api.example.com,ipv6.example.com,home.example.com" \
-  --CLOUDFLARE_RECORD_TYPES "4,6,4"
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "api.example.com,ipv6.example.com,home.example.com" \
+  --cloudflare-record-types "4,6,4"
 ```
 
 In this example:
@@ -196,13 +196,13 @@ Enable Telegram notifications for DNS updates:
 
 ```bash
 ./cloudflare-ddns.sh \
-  --CLOUDFLARE_API_TOKEN "your-cloudflare-api-token" \
-  --CLOUDFLARE_USER_MAIL "your-email@example.com" \
-  --CLOUDFLARE_ZONE_NAME "example.com" \
-  --CLOUDFLARE_RECORD_NAMES "ddns.example.com" \
-  --CLOUDFLARE_RECORD_TYPES "4" \
-  --TELEGRAM_BOT_ID "123456789:ABCdefGHIjklMNOpqrsTUVwxyz" \
-  --TELEGRAM_CHAT_ID "-1001234567890"
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "ddns.example.com" \
+  --cloudflare-record-types "4" \
+  --telegram-bot-id "123456789:ABCdefGHIjklMNOpqrsTUVwxyz" \
+  --telegram-chat-id "-1001234567890"
 ```
 
 ### With SOCKS Proxy
@@ -211,13 +211,13 @@ Use SOCKS proxy for API requests:
 
 ```bash
 ./cloudflare-ddns.sh \
-  --CLOUDFLARE_API_TOKEN "your-cloudflare-api-token" \
-  --CLOUDFLARE_USER_MAIL "your-email@example.com" \
-  --CLOUDFLARE_ZONE_NAME "example.com" \
-  --CLOUDFLARE_RECORD_NAMES "ddns.example.com" \
-  --CLOUDFLARE_RECORD_TYPES "4" \
-  --SOCKS_ADDR "127.0.0.1" \
-  --SOCKS_PORT "1080"
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "ddns.example.com" \
+  --cloudflare-record-types "4" \
+  --socks-addr "127.0.0.1" \
+  --socks-port "1080"
 ```
 
 ### Force Update
@@ -226,10 +226,10 @@ Force update even if IP address hasn't changed:
 
 ```bash
 ./cloudflare-ddns.sh \
-  --CLOUDFLARE_API_TOKEN "your-cloudflare-api-token" \
-  --CLOUDFLARE_USER_MAIL "your-email@example.com" \
-  --CLOUDFLARE_ZONE_NAME "example.com" \
-  --CLOUDFLARE_RECORD_NAMES "ddns.example.com" \
-  --CLOUDFLARE_RECORD_TYPES "4" \
-  --FORCE_UPDATE
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "ddns.example.com" \
+  --cloudflare-record-types "4" \
+  --force-update
 ```
