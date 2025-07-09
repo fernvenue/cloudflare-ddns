@@ -15,6 +15,7 @@
 - [x] **代理協議支援**: 支援對 API 請求配置 Socks 代理;
 - [x] **Systemd 支援**: 提供 service/timer 示例及動態用戶支援;
 - [x] **Telegram 推送**: 可讀性強的 Telegram 通知推送;
+- [x] **CSV 記錄**: 自動記錄 DNS 更新到 CSV 文件, 便於歷史追蹤和分析;
 - [x] **靈活配置**: 支援命令行參數傳遞與環境變量配置;
 
 ## 使用方法
@@ -48,6 +49,7 @@ vim /usr/local/bin/cloudflare-ddns.sh
 - `TELEGRAM_BOT_ID`: 可選項, Telegram 機器人對應的 ID;
 - `TELEGRAM_CHAT_ID`: 可選項, Telegram 推送的目標對話;
 - `CUSTOM_TELEGRAM_ENDPOINT`: 可選項, 用於自定義 Telegram 推送所用的 API 域名;
+- `ENABLE_CSV_LOG`: 可選項, 啟用 CSV 記錄 (預設: `true`), 設為 `false` 可禁用;
 - `FORCE_UPDATE`: 強制更新, 即使 IP 沒有變化也更新 DNS 記錄;
 
 ### 命令行選項
@@ -64,11 +66,40 @@ vim /usr/local/bin/cloudflare-ddns.sh
 - `--telegram-bot-id ID` = `$TELEGRAM_BOT_ID`
 - `--telegram-chat-id ID` = `$TELEGRAM_CHAT_ID`
 - `--custom-telegram-endpoint DOMAIN` = `$CUSTOM_TELEGRAM_ENDPOINT`
+- `--enable-csv-log BOOL` = `$ENABLE_CSV_LOG`
 - `--force-update` = `$FORCE_UPDATE`
 
 ### Systemd
 
 移步 [`cloudflare-ddns.service`](./cloudflare-ddns.service) 和 [`cloudflare-ddns.timer`](./cloudflare-ddns.timer) 參考標準的 systemd service 及 systemd timer 示例.
+
+### CSV 記錄
+
+腳本會自動將所有 DNS 記錄更新記錄到 CSV 文件中, 用於歷史追蹤和分析. 此功能預設啟用.
+
+**CSV 文件位置**: CSV 文件 `history.csv` 會在配置數據相同目錄中創建:
+- 如果設置了 `STATE_DIRECTORY`: `$STATE_DIRECTORY/history.csv`
+- 如果 `/var/lib` 可寫: `/var/lib/cloudflare-ddns/history.csv`
+- 如果 `$HOME` 可用: `$HOME/.cache/cloudflare-ddns/history.csv`
+- 備用方案: `/tmp/cloudflare-ddns/history.csv`
+
+**CSV 格式**: CSV 文件包含以下欄位:
+- `Timestamp`: RFC3339 格式的更新時間戳
+- `Zone Name`: Cloudflare zone 名稱 (例如: `example.com`)
+- `Record Name`: DNS 記錄名稱 (例如: `ddns.example.com`)
+- `Record Type`: DNS 記錄類型 (`A` 或 `AAAA`)
+- `Old IP`: 之前的 IP 地址 (新記錄時為空)
+- `New IP`: 更新後的新 IP 地址
+- `Backup API Used`: 是否使用了備用 IP 檢測服務 (`true`/`false`)
+
+**CSV 內容示例**:
+```csv
+Timestamp,Zone Name,Record Name,Record Type,Old IP,New IP,Backup API Used
+2025-07-09T10:30:45+08:00,example.com,ddns.example.com,A,192.168.1.100,203.0.113.42,false
+2025-07-09T10:30:45+08:00,example.com,ddns.example.com,AAAA,,2001:db8::1,false
+```
+
+**禁用 CSV 記錄**: 要禁用 CSV 記錄, 可設置環境變量 `ENABLE_CSV_LOG=false` 或使用命令行選項 `--enable-csv-log false`.
 
 ### 系統依賴
 
@@ -226,4 +257,18 @@ export CLOUDFLARE_RECORD_TYPES="4,6,4"
   --cloudflare-record-names "ddns.example.com" \
   --cloudflare-record-types "4" \
   --force-update
+```
+
+### 禁用 CSV 記錄
+
+禁用 DNS 更新的 CSV 記錄:
+
+```bash
+./cloudflare-ddns.sh \
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "ddns.example.com" \
+  --cloudflare-record-types "4" \
+  --enable-csv-log false
 ```

@@ -70,6 +70,34 @@ update_config_json() {
     echo "$temp_json" > "$CONFIG_FILE"
 }
 
+# Function to log DNS update to CSV file;
+log_to_csv() {
+    local zone_name="$1"
+    local record_name="$2"
+    local record_type="$3"
+    local old_ip="$4"
+    local new_ip="$5"
+    local timestamp="$6"
+    local used_backup="$7"
+    
+    # Skip CSV logging if disabled;
+    if [ "$ENABLE_CSV_LOG" != "true" ]; then
+        return 0
+    fi
+    
+    local csv_file="$WORK_DIR/history.csv"
+    
+    # Create CSV file with headers if it doesn't exist;
+    if [ ! -f "$csv_file" ]; then
+        echo "Timestamp,Zone Name,Record Name,Record Type,Old IP,New IP,Backup API Used" > "$csv_file"
+    fi
+    
+    # Append new record to CSV;
+    echo "$timestamp,$zone_name,$record_name,$record_type,$old_ip,$new_ip,$used_backup" >> "$csv_file"
+    
+    log_info "DNS update logged to CSV: $zone_name/$record_name ($record_type) $old_ip -> $new_ip"
+}
+
 # Environment variables and their defaults;
 CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN:-}
 CLOUDFLARE_API_KEY=${CLOUDFLARE_API_KEY:-}
@@ -85,6 +113,7 @@ TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
 CUSTOM_TELEGRAM_ENDPOINT=${CUSTOM_TELEGRAM_ENDPOINT:-}
 PRIMARY_IP_API=${PRIMARY_IP_API:-}
 BACKUP_IP_API=${BACKUP_IP_API:-}
+ENABLE_CSV_LOG=${ENABLE_CSV_LOG:-true}
 FORCE_UPDATE=false
 
 # Parse command line arguments;
@@ -150,6 +179,10 @@ while [[ $# -gt 0 ]]; do
 			FORCE_UPDATE=true
 			shift
 			;;
+		--enable-csv-log)
+			ENABLE_CSV_LOG="$2"
+			shift 2
+			;;
 		-h|--help)
 			echo "Usage: $0 [OPTIONS]"
 			echo "Options:"
@@ -166,6 +199,7 @@ while [[ $# -gt 0 ]]; do
 			echo "  --telegram-chat-id ID               Telegram chat ID for notifications"
 			echo "  --custom-telegram-endpoint DOMAIN   Custom Telegram API domain (default: api.telegram.org)"
 			echo "  --force-update                      Force update even if IP hasn't changed"
+			echo "  --enable-csv-log BOOL               Enable CSV logging (true/false, default: true)"
 			echo "  -h, --help                          Show this help message"
 			exit 0
 			;;
@@ -299,6 +333,8 @@ update_dns_record() {
     local RECORD_NAME="$1"
     local RECORD_TYPE="$2"
     local PUBLIC_IP="$3"
+    local OLD_IP="$4"
+    local USED_BACKUP="$5"
     
     log_info "Processing $RECORD_TYPE record $RECORD_NAME..."
     
@@ -354,8 +390,13 @@ update_dns_record() {
         log_info "$RECORD_TYPE $RECORD_NAME successfully updated to $PUBLIC_IP."
 
         # Update local cache with new IP and timestamp;
+        local update_timestamp="$(date --rfc-3339=seconds)"
         update_config_json ".\"$CLOUDFLARE_ZONE_NAME\".records.\"$RECORD_NAME\".\"$RECORD_TYPE\".last_ip = \"$PUBLIC_IP\" |
-            .\"$CLOUDFLARE_ZONE_NAME\".records.\"$RECORD_NAME\".\"$RECORD_TYPE\".last_updated = \"$(date --rfc-3339=seconds)\""
+            .\"$CLOUDFLARE_ZONE_NAME\".records.\"$RECORD_NAME\".\"$RECORD_TYPE\".last_updated = \"$update_timestamp\""
+        
+        # Log to CSV if enabled;
+        log_to_csv "$CLOUDFLARE_ZONE_NAME" "$RECORD_NAME" "$RECORD_TYPE" "$OLD_IP" "$PUBLIC_IP" "$update_timestamp" "$USED_BACKUP"
+        
         return 0
     fi
 }
@@ -434,11 +475,14 @@ for i in "${!PROCESSED_RECORD_NAMES[@]}"; do
     
     OLD_PUBLIC_IP=$(jq -r ".\"$CLOUDFLARE_ZONE_NAME\".records.\"$record_name\".\"$record_type\".last_ip // \"\"" "$CONFIG_FILE" 2>/dev/null || echo "")
     
+    # Determine if backup API was used for this IP version;
+    used_backup="${USED_BACKUP_APIS[$([ "$record_type" = "A" ] && echo "-4" || echo "-6")]}"
+    
     # Skip update if IP hasn't changed (unless forced);
     if [ "$current_ip" = "$OLD_PUBLIC_IP" ] && [ "$FORCE_UPDATE" = false ]; then
         log_info "$record_type $record_name IP not changed ($current_ip), skipping..."
     else
-        if update_dns_record "$record_name" "$record_type" "$current_ip"; then
+        if update_dns_record "$record_name" "$record_type" "$current_ip" "$OLD_PUBLIC_IP" "$used_backup"; then
             record_info="$record_type:$record_name"
             if [ "$UPDATED_RECORDS" = "" ]; then
                 UPDATED_RECORDS="$record_info"

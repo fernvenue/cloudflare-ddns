@@ -17,6 +17,7 @@ A lightweight Cloudflare Dynamic DNS shell script.
 - [x] **Proxy Protocol Support**: Support for configuring Socks proxy for API requests;
 - [x] **Systemd Support**: Provides service/timer examples and dynamic user support;
 - [x] **Telegram Push**: Highly readable Telegram notification push;
+- [x] **CSV Logging**: Automatic logging of DNS updates to CSV file for history tracking and analysis;
 - [x] **Flexible Configuration**: Support for command line parameter passing and environment variable configuration;
 
 ## Usage
@@ -50,6 +51,7 @@ For detailed help information, you can use:
 - `TELEGRAM_BOT_ID`: Optional, Telegram bot ID;
 - `TELEGRAM_CHAT_ID`: Optional, Telegram target chat for push notifications;
 - `CUSTOM_TELEGRAM_ENDPOINT`: Optional, used to customize the API domain used for Telegram push;
+- `ENABLE_CSV_LOG`: Optional, enable CSV logging (default: `true`), set to `false` to disable;
 - `FORCE_UPDATE`: Force update, update DNS records even if IP hasn't changed;
 
 ### Command Line Options
@@ -66,11 +68,40 @@ For detailed help information, you can use:
 - `--telegram-bot-id ID` = `$TELEGRAM_BOT_ID`
 - `--telegram-chat-id ID` = `$TELEGRAM_CHAT_ID`
 - `--custom-telegram-endpoint DOMAIN` = `$CUSTOM_TELEGRAM_ENDPOINT`
+- `--enable-csv-log BOOL` = `$ENABLE_CSV_LOG`
 - `--force-update` = `$FORCE_UPDATE`
 
 ### Systemd
 
 Refer to [`cloudflare-ddns.service`](./cloudflare-ddns.service) and [`cloudflare-ddns.timer`](./cloudflare-ddns.timer) for standard systemd service and systemd timer examples.
+
+### CSV Logging
+
+The script automatically logs all DNS record updates to a CSV file for history tracking and analysis. This feature is enabled by default.
+
+**CSV File Location**: The CSV file `history.csv` is created in the same directory as the configuration data:
+- If `STATE_DIRECTORY` is set: `$STATE_DIRECTORY/history.csv`
+- If `/var/lib` is writable: `/var/lib/cloudflare-ddns/history.csv`
+- If `$HOME` is available: `$HOME/.cache/cloudflare-ddns/history.csv`
+- Fallback: `/tmp/cloudflare-ddns/history.csv`
+
+**CSV Format**: The CSV file contains the following columns:
+- `Timestamp`: RFC3339 formatted timestamp of the update
+- `Zone Name`: Cloudflare zone name (e.g., `example.com`)
+- `Record Name`: DNS record name (e.g., `ddns.example.com`)
+- `Record Type`: DNS record type (`A` or `AAAA`)
+- `Old IP`: Previous IP address (empty for new records)
+- `New IP`: New IP address after update
+- `Backup API Used`: Whether backup IP detection service was used (`true`/`false`)
+
+**Example CSV content**:
+```csv
+Timestamp,Zone Name,Record Name,Record Type,Old IP,New IP,Backup API Used
+2025-07-09T10:30:45+08:00,example.com,ddns.example.com,A,192.168.1.100,203.0.113.42,false
+2025-07-09T10:30:45+08:00,example.com,ddns.example.com,AAAA,,2001:db8::1,false
+```
+
+**Disable CSV Logging**: To disable CSV logging, set the environment variable `ENABLE_CSV_LOG=false` or use the command line option `--enable-csv-log false`.
 
 ### System Dependencies
 
@@ -228,4 +259,18 @@ Force update even if IP address hasn't changed:
   --cloudflare-record-names "ddns.example.com" \
   --cloudflare-record-types "4" \
   --force-update
+```
+
+### Disable CSV Logging
+
+Disable CSV logging for DNS updates:
+
+```bash
+./cloudflare-ddns.sh \
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "ddns.example.com" \
+  --cloudflare-record-types "4" \
+  --enable-csv-log false
 ```
