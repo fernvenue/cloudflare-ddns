@@ -8,6 +8,7 @@ DynamicUser=yes
 StateDirectory=cloudflare-ddns
 Type=oneshot
 Restart=on-failure
+RestartSec=30
 ExecStart=/bin/bash /usr/local/bin/cloudflare-ddns.sh
 Environment="CLOUDFLARE_API_TOKEN=your_api_token_here"
 Environment="CLOUDFLARE_RECORD_NAMES=4.example.com,6.example.com,www.example.com"
