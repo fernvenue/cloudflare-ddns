@@ -16,6 +16,7 @@
 - [x] **Systemd 支援**: 提供 service/timer 示例及動態用戶支援;
 - [x] **Telegram 推送**: 可讀性強的 Telegram 通知推送;
 - [x] **CSV 記錄**: 自動記錄 DNS 更新到 CSV 文件, 便於歷史追蹤和分析;
+- [x] **鉤子命令**: 當 IPv4 或 IPv6 地址變化時執行自定義命令;
 - [x] **靈活配置**: 支援命令行參數傳遞與環境變量配置;
 
 ## 使用方法
@@ -50,6 +51,8 @@ vim /usr/local/bin/cloudflare-ddns.sh
 - `TELEGRAM_CHAT_ID`: 可選項, Telegram 推送的目標對話;
 - `CUSTOM_TELEGRAM_ENDPOINT`: 可選項, 用於自定義 Telegram 推送所用的 API 域名;
 - `ENABLE_CSV_LOG`: 可選項, 啟用 CSV 記錄 (預設: `true`), 設為 `false` 可禁用;
+- `IPV4_HOOK_COMMAND`: 可選項, 當 IPv4 地址變化時執行的命令;
+- `IPV6_HOOK_COMMAND`: 可選項, 當 IPv6 地址變化時執行的命令;
 - `FORCE_UPDATE`: 強制更新, 即使 IP 沒有變化也更新 DNS 記錄;
 
 ### 命令行選項
@@ -67,6 +70,8 @@ vim /usr/local/bin/cloudflare-ddns.sh
 - `--telegram-chat-id ID` = `$TELEGRAM_CHAT_ID`
 - `--custom-telegram-endpoint DOMAIN` = `$CUSTOM_TELEGRAM_ENDPOINT`
 - `--enable-csv-log BOOL` = `$ENABLE_CSV_LOG`
+- `--ipv4-hook-command COMMAND` = `$IPV4_HOOK_COMMAND`
+- `--ipv6-hook-command COMMAND` = `$IPV6_HOOK_COMMAND`
 - `--force-update` = `$FORCE_UPDATE`
 
 ### Systemd
@@ -100,6 +105,64 @@ Timestamp,Zone Name,Record Name,Record Type,Old IP,New IP,Backup API Used
 ```
 
 **禁用 CSV 記錄**: 要禁用 CSV 記錄, 可設置環境變量 `ENABLE_CSV_LOG=false` 或使用命令行選項 `--enable-csv-log false`.
+
+### 鉤子命令
+
+腳本支援在 IP 地址變化時執行自定義命令(鉤子). 這使您能夠在 IPv4 或 IPv6 地址更新時觸發額外的操作.
+
+**鉤子類型**:
+
+- **IPv4 鉤子**: 當任何 IPv4 (A 記錄) 地址變化時執行
+- **IPv6 鉤子**: 當任何 IPv6 (AAAA 記錄) 地址變化時執行
+
+**配置方式**:
+
+- 通過環境變量設置: `IPV4_HOOK_COMMAND` 和 `IPV6_HOOK_COMMAND`
+- 通過命令行設置: `--ipv4-hook-command` 和 `--ipv6-hook-command`
+
+**鉤子環境變量**: 當鉤子執行時, 腳本會提供以下環境變量:
+
+- `CLOUDFLARE_DDNS_IP_VERSION`: IP 版本 (IPv4 為 "4", IPv6 為 "6")
+- `CLOUDFLARE_DDNS_OLD_IP`: 之前的 IP 地址
+- `CLOUDFLARE_DDNS_NEW_IP`: 更新後的新 IP 地址
+- `CLOUDFLARE_DDNS_ZONE_NAME`: Cloudflare zone 名稱
+- `CLOUDFLARE_DDNS_RECORD_NAMES`: 更新的記錄名稱 (逗號分隔)
+- `CLOUDFLARE_DDNS_TIMESTAMP`: RFC3339 格式的更新時間戳
+
+**鉤子執行行為**:
+
+- 鉤子在 DNS 記錄成功更新**之後**運行
+- 鉤子輸出被抑制 (重定向到 `/dev/null`)
+- 鉤子失敗不會影響主腳本執行
+- 僅記錄成功/失敗狀態
+- 不同 IP 版本的鉤子並行執行
+
+**鉤子命令示例**:
+
+更新 Hurricane Electric DNS:
+
+```bash
+export IPV4_HOOK_COMMAND="curl -s -4 'https://dyn.dns.he.net/nic/update?hostname=example.com&password=your-password&myip=\$CLOUDFLARE_DDNS_NEW_IP'"
+```
+
+發送 webhook 通知:
+
+```bash
+export IPV4_HOOK_COMMAND="curl -X POST https://webhook.example.com/ip-changed -H 'Content-Type: application/json' -d '{\"ip\":\"\$CLOUDFLARE_DDNS_NEW_IP\",\"type\":\"ipv4\"}'"
+```
+
+執行自定義腳本:
+
+```bash
+export IPV4_HOOK_COMMAND="/path/to/your/script.sh"
+export IPV6_HOOK_COMMAND="/path/to/your/ipv6-script.sh"
+```
+
+更新多個服務:
+
+```bash
+export IPV4_HOOK_COMMAND="curl -s 'https://service1.com/update?ip=\$CLOUDFLARE_DDNS_NEW_IP' && curl -s 'https://service2.com/api/ip' -d 'ip=\$CLOUDFLARE_DDNS_NEW_IP'"
+```
 
 ### 系統依賴
 
@@ -271,4 +334,33 @@ export CLOUDFLARE_RECORD_TYPES="4,6,4"
   --cloudflare-record-names "ddns.example.com" \
   --cloudflare-record-types "4" \
   --enable-csv-log false
+```
+
+### 使用鉤子命令
+
+當 IP 地址變化時執行自定義命令:
+
+```bash
+./cloudflare-ddns.sh \
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "ddns.example.com,ddns.example.com" \
+  --cloudflare-record-types "4,6" \
+  --ipv4-hook-command "curl -s -4 'https://dyn.dns.he.net/nic/update?hostname=ddns.example.com&password=your-he-password&myip=\$CLOUDFLARE_DDNS_NEW_IP'" \
+  --ipv6-hook-command "curl -s -6 'https://dyn.dns.he.net/nic/update?hostname=ddns.example.com&password=your-he-password&myip=\$CLOUDFLARE_DDNS_NEW_IP'"
+```
+
+### 使用環境變量配置鉤子
+
+```bash
+export IPV4_HOOK_COMMAND="curl -s 'https://webhook.example.com/ipv4-changed' -d 'ip=\$CLOUDFLARE_DDNS_NEW_IP'"
+export IPV6_HOOK_COMMAND="/path/to/custom/ipv6-script.sh"
+
+./cloudflare-ddns.sh \
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "ddns.example.com,ddns.example.com" \
+  --cloudflare-record-types "4,6"
 ```

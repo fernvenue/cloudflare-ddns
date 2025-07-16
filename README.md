@@ -18,6 +18,7 @@ A lightweight Cloudflare Dynamic DNS shell script.
 - [x] **Systemd Support**: Provides service/timer examples and dynamic user support;
 - [x] **Telegram Push**: Highly readable Telegram notification push;
 - [x] **CSV Logging**: Automatic logging of DNS updates to CSV file for history tracking and analysis;
+- [x] **Hook Commands**: Execute custom commands when IPv4 or IPv6 addresses change;
 - [x] **Flexible Configuration**: Support for command line parameter passing and environment variable configuration;
 
 ## Usage
@@ -52,6 +53,8 @@ For detailed help information, you can use:
 - `TELEGRAM_CHAT_ID`: Optional, Telegram target chat for push notifications;
 - `CUSTOM_TELEGRAM_ENDPOINT`: Optional, used to customize the API domain used for Telegram push;
 - `ENABLE_CSV_LOG`: Optional, enable CSV logging (default: `true`), set to `false` to disable;
+- `IPV4_HOOK_COMMAND`: Optional, command to execute when IPv4 address changes;
+- `IPV6_HOOK_COMMAND`: Optional, command to execute when IPv6 address changes;
 - `FORCE_UPDATE`: Force update, update DNS records even if IP hasn't changed;
 
 ### Command Line Options
@@ -69,6 +72,8 @@ For detailed help information, you can use:
 - `--telegram-chat-id ID` = `$TELEGRAM_CHAT_ID`
 - `--custom-telegram-endpoint DOMAIN` = `$CUSTOM_TELEGRAM_ENDPOINT`
 - `--enable-csv-log BOOL` = `$ENABLE_CSV_LOG`
+- `--ipv4-hook-command COMMAND` = `$IPV4_HOOK_COMMAND`
+- `--ipv6-hook-command COMMAND` = `$IPV6_HOOK_COMMAND`
 - `--force-update` = `$FORCE_UPDATE`
 
 ### Systemd
@@ -102,6 +107,64 @@ Timestamp,Zone Name,Record Name,Record Type,Old IP,New IP,Backup API Used
 ```
 
 **Disable CSV Logging**: To disable CSV logging, set the environment variable `ENABLE_CSV_LOG=false` or use the command line option `--enable-csv-log false`.
+
+### Hook Commands
+
+The script supports executing custom commands (hooks) when IP addresses change. This allows you to trigger additional actions when your IPv4 or IPv6 address updates.
+
+**Hook Types**:
+
+- **IPv4 Hook**: Executed when any IPv4 (A record) address changes
+- **IPv6 Hook**: Executed when any IPv6 (AAAA record) address changes
+
+**Configuration**:
+
+- Set via environment variables: `IPV4_HOOK_COMMAND` and `IPV6_HOOK_COMMAND`
+- Set via command line: `--ipv4-hook-command` and `--ipv6-hook-command`
+
+**Hook Environment Variables**: When a hook is executed, the script provides the following environment variables:
+
+- `CLOUDFLARE_DDNS_IP_VERSION`: IP version ("4" for IPv4, "6" for IPv6)
+- `CLOUDFLARE_DDNS_OLD_IP`: Previous IP address
+- `CLOUDFLARE_DDNS_NEW_IP`: New IP address after update
+- `CLOUDFLARE_DDNS_ZONE_NAME`: Cloudflare zone name
+- `CLOUDFLARE_DDNS_RECORD_NAMES`: Comma-separated list of updated record names
+- `CLOUDFLARE_DDNS_TIMESTAMP`: RFC3339 formatted timestamp of the update
+
+**Hook Execution Behavior**:
+
+- Hooks run **after** DNS records are successfully updated
+- Hook output is suppressed (redirected to `/dev/null`)
+- Hook failures do not affect the main script execution
+- Only success/failure status is logged
+- Hooks execute in parallel for different IP versions
+
+**Example Hook Commands**:
+
+Update Hurricane Electric DNS:
+
+```bash
+export IPV4_HOOK_COMMAND="curl -s -4 'https://dyn.dns.he.net/nic/update?hostname=example.com&password=your-password&myip=\$CLOUDFLARE_DDNS_NEW_IP'"
+```
+
+Send webhook notification:
+
+```bash
+export IPV4_HOOK_COMMAND="curl -X POST https://webhook.example.com/ip-changed -H 'Content-Type: application/json' -d '{\"ip\":\"\$CLOUDFLARE_DDNS_NEW_IP\",\"type\":\"ipv4\"}'"
+```
+
+Execute custom script:
+
+```bash
+export IPV4_HOOK_COMMAND="/path/to/your/script.sh"
+export IPV6_HOOK_COMMAND="/path/to/your/ipv6-script.sh"
+```
+
+Update multiple services:
+
+```bash
+export IPV4_HOOK_COMMAND="curl -s 'https://service1.com/update?ip=\$CLOUDFLARE_DDNS_NEW_IP' && curl -s 'https://service2.com/api/ip' -d 'ip=\$CLOUDFLARE_DDNS_NEW_IP'"
+```
 
 ### System Dependencies
 
@@ -273,4 +336,33 @@ Disable CSV logging for DNS updates:
   --cloudflare-record-names "ddns.example.com" \
   --cloudflare-record-types "4" \
   --enable-csv-log false
+```
+
+### With Hook Commands
+
+Execute custom commands when IP addresses change:
+
+```bash
+./cloudflare-ddns.sh \
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "ddns.example.com,ddns.example.com" \
+  --cloudflare-record-types "4,6" \
+  --ipv4-hook-command "curl -s -4 'https://dyn.dns.he.net/nic/update?hostname=ddns.example.com&password=your-he-password&myip=\$CLOUDFLARE_DDNS_NEW_IP'" \
+  --ipv6-hook-command "curl -s -6 'https://dyn.dns.he.net/nic/update?hostname=ddns.example.com&password=your-he-password&myip=\$CLOUDFLARE_DDNS_NEW_IP'"
+```
+
+### Hook with Environment Variables
+
+```bash
+export IPV4_HOOK_COMMAND="curl -s 'https://webhook.example.com/ipv4-changed' -d 'ip=\$CLOUDFLARE_DDNS_NEW_IP'"
+export IPV6_HOOK_COMMAND="/path/to/custom/ipv6-script.sh"
+
+./cloudflare-ddns.sh \
+  --cloudflare-api-token "your-cloudflare-api-token" \
+  --cloudflare-user-mail "your-email@example.com" \
+  --cloudflare-zone-name "example.com" \
+  --cloudflare-record-names "ddns.example.com,ddns.example.com" \
+  --cloudflare-record-types "4,6"
 ```

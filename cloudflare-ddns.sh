@@ -98,6 +98,53 @@ log_to_csv() {
     log_info "DNS update logged to CSV: $zone_name/$record_name ($record_type) $old_ip -> $new_ip"
 }
 
+# Function to execute hook command for IP version changes;
+execute_hook_command() {
+    local ip_version="$1"    # "4" or "6"
+    local old_ip="$2"
+    local new_ip="$3"
+    local record_names="$4"  # Comma-separated list of affected record names
+    
+    local hook_command
+    local ip_type
+    
+    if [ "$ip_version" = "4" ]; then
+        hook_command="$IPV4_HOOK_COMMAND"
+        ip_type="IPv4"
+    elif [ "$ip_version" = "6" ]; then
+        hook_command="$IPV6_HOOK_COMMAND"
+        ip_type="IPv6"
+    else
+        log_error "Invalid IP version '$ip_version' for hook execution."
+        return 1
+    fi
+    
+    # Skip if no hook command is configured;
+    if [ "$hook_command" = "" ]; then
+        return 0
+    fi
+    
+    log_info "Executing $ip_type hook command: $hook_command"
+    
+    # Set environment variables for the hook command;
+    export CLOUDFLARE_DDNS_IP_VERSION="$ip_version"
+    export CLOUDFLARE_DDNS_OLD_IP="$old_ip"
+    export CLOUDFLARE_DDNS_NEW_IP="$new_ip"
+    export CLOUDFLARE_DDNS_ZONE_NAME="$CLOUDFLARE_ZONE_NAME"
+    export CLOUDFLARE_DDNS_RECORD_NAMES="$record_names"
+    export CLOUDFLARE_DDNS_TIMESTAMP="$(date --rfc-3339=seconds)"
+    
+    # Execute the hook command in a subshell, suppressing all output;
+    if eval "$hook_command" >/dev/null 2>&1; then
+        log_info "$ip_type hook command executed successfully."
+        return 0
+    else
+        local exit_code=$?
+        log_warning "$ip_type hook command failed with exit code $exit_code."
+        return 0  # Always return success to avoid affecting main script
+    fi
+}
+
 # Environment variables and their defaults;
 CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN:-}
 CLOUDFLARE_API_KEY=${CLOUDFLARE_API_KEY:-}
@@ -114,6 +161,8 @@ CUSTOM_TELEGRAM_ENDPOINT=${CUSTOM_TELEGRAM_ENDPOINT:-}
 PRIMARY_IP_API=${PRIMARY_IP_API:-}
 BACKUP_IP_API=${BACKUP_IP_API:-}
 ENABLE_CSV_LOG=${ENABLE_CSV_LOG:-true}
+IPV4_HOOK_COMMAND=${IPV4_HOOK_COMMAND:-}
+IPV6_HOOK_COMMAND=${IPV6_HOOK_COMMAND:-}
 FORCE_UPDATE=false
 
 # Parse command line arguments;
@@ -183,6 +232,14 @@ while [[ $# -gt 0 ]]; do
 			ENABLE_CSV_LOG="$2"
 			shift 2
 			;;
+		--ipv4-hook-command)
+			IPV4_HOOK_COMMAND="$2"
+			shift 2
+			;;
+		--ipv6-hook-command)
+			IPV6_HOOK_COMMAND="$2"
+			shift 2
+			;;
 		-h|--help)
 			echo "Usage: $0 [OPTIONS]"
 			echo "Options:"
@@ -200,6 +257,8 @@ while [[ $# -gt 0 ]]; do
 			echo "  --custom-telegram-endpoint DOMAIN   Custom Telegram API domain (default: api.telegram.org)"
 			echo "  --force-update                      Force update even if IP hasn't changed"
 			echo "  --enable-csv-log BOOL               Enable CSV logging (true/false, default: true)"
+			echo "  --ipv4-hook-command COMMAND         Command to execute when IPv4 address changes"
+			echo "  --ipv6-hook-command COMMAND         Command to execute when IPv6 address changes"
 			echo "  -h, --help                          Show this help message"
 			exit 0
 			;;
@@ -439,6 +498,11 @@ IFS=',' read -ra RECORD_NAMES_ARRAY <<< "$CLOUDFLARE_RECORD_NAMES"
 UPDATED_RECORDS=""
 FAILED_RECORDS=""
 
+# Track IP changes for hook execution;
+declare -A IP_CHANGED
+declare -A OLD_IPS
+declare -A UPDATED_RECORD_NAMES_BY_IP
+
 # Parse record names and remove empty entries but keep duplicates;
 PROCESSED_RECORD_NAMES=()
 for record_name in "${RECORD_NAMES_ARRAY[@]}"; do
@@ -478,6 +542,18 @@ for i in "${!PROCESSED_RECORD_NAMES[@]}"; do
     # Determine if backup API was used for this IP version;
     used_backup="${USED_BACKUP_APIS[$([ "$record_type" = "A" ] && echo "-4" || echo "-6")]}"
     
+    # Track IP changes for hook execution;
+    ip_version_num=$([ "$record_type" = "A" ] && echo "4" || echo "6")
+    if [ "$current_ip" != "$OLD_PUBLIC_IP" ] || [ "$FORCE_UPDATE" = true ]; then
+        if [ "${IP_CHANGED[$ip_version_num]:-}" != "true" ]; then
+            IP_CHANGED["$ip_version_num"]="true"
+            OLD_IPS["$ip_version_num"]="$OLD_PUBLIC_IP"
+            UPDATED_RECORD_NAMES_BY_IP["$ip_version_num"]="$record_name"
+        else
+            UPDATED_RECORD_NAMES_BY_IP["$ip_version_num"]="${UPDATED_RECORD_NAMES_BY_IP[$ip_version_num]},$record_name"
+        fi
+    fi
+    
     # Skip update if IP hasn't changed (unless forced);
     if [ "$current_ip" = "$OLD_PUBLIC_IP" ] && [ "$FORCE_UPDATE" = false ]; then
         log_info "$record_type $record_name IP not changed ($current_ip), skipping..."
@@ -508,6 +584,17 @@ if [ "$UPDATED_RECORDS" = "" ]; then
     log_info "No records were updated. Use --force to update anyway."
     exit 0
 fi
+
+# Execute hook commands for changed IP versions;
+for ip_version in "4" "6"; do
+    if [ "${IP_CHANGED[$ip_version]:-}" = "true" ]; then
+        old_ip="${OLD_IPS[$ip_version]}"
+        new_ip="${PUBLIC_IPS[$([ "$ip_version" = "4" ] && echo "-4" || echo "-6")]}"
+        updated_records="${UPDATED_RECORD_NAMES_BY_IP[$ip_version]}"
+        
+        execute_hook_command "$ip_version" "$old_ip" "$new_ip" "$updated_records"
+    fi
+done
 
 # Function to send Telegram notification for DNS record updates;
 send_telegram_notification() {
