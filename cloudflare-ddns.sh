@@ -163,7 +163,7 @@ BACKUP_IP_API=${BACKUP_IP_API:-}
 ENABLE_CSV_LOG=${ENABLE_CSV_LOG:-true}
 IPV4_HOOK_COMMAND=${IPV4_HOOK_COMMAND:-}
 IPV6_HOOK_COMMAND=${IPV6_HOOK_COMMAND:-}
-FORCE_UPDATE=false
+FORCE_UPDATE=${FORCE_UPDATE:-false}
 
 # Parse command line arguments;
 while [[ $# -gt 0 ]]; do
@@ -260,6 +260,11 @@ while [[ $# -gt 0 ]]; do
 			echo "  --ipv4-hook-command COMMAND         Command to execute when IPv4 address changes"
 			echo "  --ipv6-hook-command COMMAND         Command to execute when IPv6 address changes"
 			echo "  -h, --help                          Show this help message"
+			echo ""
+			echo "Environment Variables:"
+			echo "  All options can also be set via environment variables. For example:"
+			echo "  FORCE_UPDATE=true (equivalent to --force-update)"
+			echo "  Command line arguments take precedence over environment variables."
 			exit 0
 			;;
 		*)
