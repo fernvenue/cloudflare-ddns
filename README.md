@@ -19,22 +19,45 @@ A lightweight Cloudflare Dynamic DNS shell script.
 - [x] **Telegram Push**: Highly readable Telegram notification push;
 - [x] **CSV Logging**: Automatic logging of DNS updates to CSV file for history tracking and analysis;
 - [x] **Hook Commands**: Execute custom commands when IPv4 or IPv6 addresses change;
+- [x] **Nix Package**: Easy installation through Nix package manager with all dependencies included;
 - [x] **Flexible Configuration**: Support for command line parameter passing and environment variable configuration;
 
-## Usage
+## Installation
+
+### Using Nix (Recommended)
+
+Install directly from this repository using Nix flakes:
+
+```bash
+nix profile install github:fernvenue/cloudflare-ddns
+```
+
+After installation, you can run the script using:
+
+```bash
+cloudflare-ddns --help
+```
+
+The Nix package automatically includes all required dependencies (curl, jq, bash, etc.) and ensures they are available at runtime.
+
+### Manual Installation
 
 Get the script:
 
-```
+```bash
 curl -o /usr/local/bin/cloudflare-ddns.sh https://raw.githubusercontent.com/fernvenue/cloudflare-ddns/refs/heads/master/cloudflare-ddns.sh
-vim /usr/local/bin/cloudflare-ddns.sh
+chmod +x /usr/local/bin/cloudflare-ddns.sh
 ```
 
-Give it executable permission and run. **Make sure the corresponding domain already has records before running**, otherwise the script cannot find the records to update.
+**Make sure the corresponding domain already has records before running**, otherwise the script cannot find the records to update.
+
+## Usage
 
 For detailed help information, you can use:
 
 ```bash
+cloudflare-ddns --help
+# or if using manual installation:
 ./cloudflare-ddns.sh --help
 ```
 
