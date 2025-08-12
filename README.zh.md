@@ -17,22 +17,45 @@
 - [x] **Telegram 推送**: 可讀性強的 Telegram 通知推送;
 - [x] **CSV 記錄**: 自動記錄 DNS 更新到 CSV 文件, 便於歷史追蹤和分析;
 - [x] **鉤子命令**: 當 IPv4 或 IPv6 地址變化時執行自定義命令;
+- [x] **Nix 套件**: 透過 Nix 套件管理器輕鬆安裝, 包含所有依賴項;
 - [x] **靈活配置**: 支援命令行參數傳遞與環境變量配置;
 
-## 使用方法
+## 安裝
+
+### 使用 Nix (推薦)
+
+透過 Nix flakes 直接從此儲存庫安裝:
+
+```bash
+nix profile install github:fernvenue/cloudflare-ddns
+```
+
+安裝後, 可以使用以下命令運行腳本:
+
+```bash
+cloudflare-ddns --help
+```
+
+Nix 套件自動包含所有必需的依賴項 (curl, jq, bash 等) 並確保它們在運行時可用.
+
+### 手動安裝
 
 獲取腳本:
 
-```
+```bash
 curl -o /usr/local/bin/cloudflare-ddns.sh https://raw.githubusercontent.com/fernvenue/cloudflare-ddns/refs/heads/master/cloudflare-ddns.sh
-vim /usr/local/bin/cloudflare-ddns.sh
+chmod +x /usr/local/bin/cloudflare-ddns.sh
 ```
 
-賦予可執行權限並運行即可, **在運行之前務必確認對應的域名已有記錄**, 否則腳本無法找到需要更新的記錄.
+**在運行之前務必確認對應的域名已有記錄**, 否則腳本無法找到需要更新的記錄.
+
+## 使用方法
 
 如需詳細的幫助信息, 可以使用:
 
 ```bash
+cloudflare-ddns --help
+# 或者使用手動安裝的版本:
 ./cloudflare-ddns.sh --help
 ```
 
