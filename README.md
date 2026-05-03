@@ -29,7 +29,7 @@ A lightweight Cloudflare Dynamic DNS shell script.
 Install directly from this repository using Nix flakes:
 
 ```bash
-nix profile install github:fernvenue/cloudflare-ddns
+nix profile add github:fernvenue/cloudflare-ddns
 ```
 
 After installation, you can run the script using:

@@ -27,7 +27,7 @@
 透過 Nix flakes 直接從此儲存庫安裝:
 
 ```bash
-nix profile install github:fernvenue/cloudflare-ddns
+nix profile add github:fernvenue/cloudflare-ddns
 ```
 
 安裝後, 可以使用以下命令運行腳本:
